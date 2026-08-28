@@ -1,0 +1,14 @@
+.gradle/
+build/
+run/
+.idea/
+*.iml
+logs/
+*.log
+*.sparkprofile
+.codex-backups/
+crash-reports/
+hs_err_pid*.log
+.engineering/backups/
+.engineering/diffs/
+.engineering/prompts/

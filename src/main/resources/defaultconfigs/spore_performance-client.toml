@@ -1,0 +1,136 @@
+# Spore Performance 1.20.1 - 客户端配置。
+[safe]
+# 用实体加入/离开索引替代 AI Fix Hinderburg 的渲染世界全遍历。
+hinderburgIndex = true
+
+[safe.sporeRendering]
+# 仅在疯狂等级和观察距离满足幻觉条件后才创建伪装实体。
+deferIllusionEntityCreation = true
+# 缓存感染体来源字符串对应的实体类型，避免渲染时重复解析注册表。
+cacheIllusionEntityTypes = true
+# 额外膜层重复使用父模型同一姿势时跳过第二次动画计算。
+skipDuplicateLayerAnimation = true
+# 修复 Sona 感染后处理在 Oculus 下复制不兼容深度格式的问题。
+fixSonaInfectionPostDepthCopy = true
+
+[safe.sonaRendering]
+# Sona 覆盖层和感染后处理在同一渲染帧共享感染度与雾色采样。
+shareInfectionFrameSample = true
+# 把 Sona 最多 108 个孢子 GUI 方块合并为一次顶点提交。
+batchSporeOverlayQuads = true
+# 预计算 Sona 孢子粒子不随帧变化的哈希种子、尺寸和速度参数。
+precomputeSporeOverlaySeeds = true
+
+[aggressive.sporeRendering.layers]
+# 超过设定距离后不渲染感染体额外眼睛发光层；默认关闭。
+eyeDistanceCull = false
+# 普通感染体眼睛发光层的最远显示距离（格）。
+eyeRenderDistance = 64
+# 超过设定距离后不渲染透明膜、液体、变异血管和水下伪装层；默认关闭。
+translucentDistanceCull = false
+# 普通感染体透明效果层的最远显示距离（格）。
+translucentRenderDistance = 48
+# 超过设定距离后不渲染 Howitzer、Hindenburg 等额外灯光层；默认关闭。
+emissiveDistanceCull = false
+# 普通感染体额外灯光层的最远显示距离（格）。
+emissiveRenderDistance = 64
+# 灾厄、Hyper、器官体和 Proto 等大型单位额外效果层的显示距离（格）。
+majorEntityEffectDistance = 96
+# 单独允许灾厄生物的额外效果层按距离剔除；默认关闭。
+calamityEffectCull = false
+# 灾厄生物额外效果层的最远显示距离（格）。
+calamityEffectDistance = 96
+# 单独允许器官体的额外效果层按距离剔除；默认关闭。
+organoidEffectCull = false
+# 器官体额外效果层的最远显示距离（格）。
+organoidEffectDistance = 96
+# 单独允许 Hyper 感染体的额外效果层按距离剔除；默认关闭。
+hyperEffectCull = false
+# Hyper 感染体额外效果层的最远显示距离（格）。
+hyperEffectDistance = 96
+# 单独允许 Proto 的额外效果层按距离剔除；默认关闭。
+protoEffectCull = false
+# Proto 额外效果层的最远显示距离（格）。
+protoEffectDistance = 96
+# 允许安装版签名已验证的多根模型使用 Alpha/UV 部件裁剪；默认关闭。
+verifiedMultiRootPartMask = false
+# 只提交眼睛贴图中实际含不透明像素的模型部件；解析失败时回退整模。
+eyeOpaquePartMask = false
+# 只提交灯光贴图中实际含不透明像素的模型部件；解析失败时回退整模。
+emissiveOpaquePartMask = false
+
+[aggressive.sporeRendering.animation]
+# 降低远处普通 Spore 生物模型动画计算频率；默认关闭。
+animationLod = false
+# 普通 Spore 生物保持逐帧动画的近距离范围（格）。
+normalNearDistance = 32
+# 普通 Spore 生物动画中距离档的上限（格）。
+normalMediumDistance = 64
+# 普通 Spore 生物动画远距离档的上限（格）。
+normalFarDistance = 96
+# 普通 Spore 生物处于中距离档时每隔多少帧重新计算动画。
+mediumIntervalFrames = 2
+# 普通 Spore 生物处于远距离档时每隔多少帧重新计算动画。
+farIntervalFrames = 4
+# 普通 Spore 生物超过远距离档后每隔多少帧重新计算动画。
+veryFarIntervalFrames = 8
+# 允许大型单位使用动画降频；默认关闭以保证技能表现。
+majorEntityAnimationLod = false
+# 单独允许灾厄生物使用大型单位动画降频；默认关闭。
+calamityAnimationLod = false
+# 单独允许器官体使用大型单位动画降频；默认关闭。
+organoidAnimationLod = false
+# 单独允许 Hyper 感染体使用大型单位动画降频；默认关闭。
+hyperAnimationLod = false
+# 单独允许 Proto 使用大型单位动画降频；默认关闭。
+protoAnimationLod = false
+# 大型单位保持逐帧动画的近距离范围（格）。
+majorNearDistance = 64
+# 大型单位动画降频的远距离参考范围（格）。
+majorFarDistance = 128
+# 大型单位超过近距离范围后每隔多少帧重新计算动画。
+majorFarIntervalFrames = 4
+# 动画降频最多保存多少个实体与模型组合的姿势。
+poseCacheMaxEntities = 512
+
+[aggressive.sonaRendering]
+# 降低 Sona 屏幕孢子覆盖层顶点更新频率；其余帧复用 GPU 顶点缓存，默认关闭。
+overlayGeometryLod = false
+# Sona 屏幕孢子覆盖层每隔多少帧重建一次顶点。
+overlayUpdateIntervalFrames = 2
+# 允许按比例减少 Sona 屏幕孢子数量；默认关闭。
+overlayParticleScaleEnabled = false
+# Sona 屏幕孢子数量比例。
+overlayParticleScale = 1.0
+# 让 Sona 感染后处理使用 0.5 倍分辨率颜色目标；主深度仍保持全分辨率。
+postHalfResolution = false
+
+[localRendering]
+# 只渲染观察点附近的高密度真菌装饰方块；需要 Embeddium，默认关闭。启用前请关闭全隐藏诊断资源包。
+fungalDecorationDistanceCull = false
+# 真菌装饰方块模型的显示距离（格）；方块状态、碰撞、光照和服务端逻辑不受影响。
+fungalDecorationRenderDistance = 32
+# 观察点移动多少格后更新一次剔除边界；越小边界越及时，但区段重建更频繁。
+fungalDecorationCameraStep = 2
+# 每个客户端 Tick 最多请求重建多少个含目标方块的区段；越大更新越快，但瞬时压力越高。
+fungalDecorationSectionRebuildsPerTick = 8
+
+[compat.sporesrp]
+# 接管 sporesrp HUD，取消原实现在每个 Overlay 阶段的重复绘制。
+relocateHudToHotbar = true
+# 打开背包或其他界面时，在屏幕最前层绘制 HUD，避免被背景模糊处理。
+renderHudAboveScreens = true
+# 普通游戏画面是否绘制 HUD；默认关闭，关闭时仅在背包、箱子或其他 Screen 打开后显示。
+renderHudInGameplay = false
+
+[compat.acceleratedRendering]
+# 自动检测 AcceleratedRendering 及所需方法签名。
+autoDetect = true
+# 临时强制 Spore 眼睛和灯光层使用 AcceleratedRendering 管线；默认关闭。
+accelerateEmissiveLayers = false
+# 临时强制 Spore 透明膜和血管层使用 AcceleratedRendering 管线；默认关闭。
+accelerateTranslucentLayers = false
+
+[diagnostics.clientRendering]
+# 收集 /sporeperformanceclient metrics 使用的客户端渲染计数器；默认关闭。
+renderMetrics = false

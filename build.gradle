@@ -1,0 +1,210 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+group = mod_group_id
+version = mod_version
+
+base { archivesName = mod_id }
+
+java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+
+minecraft {
+    mappings channel: 'official', version: minecraft_version
+    copyIdeResources = true
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            mods { "${mod_id}" { source sourceSets.main } }
+        }
+        client {}
+        server { args '--nogui' }
+    }
+}
+
+// ForgeGradle can only remap local jars when they are exposed through a
+// repository-backed module.  A `files(...)` dependency is deliberately not
+// deobfuscated (FG logs a warning and puts the obfuscated jar on the dev
+// runtime classpath), which makes a reobfuscated Spore jar call SRG names
+// against the official-mapped userdev classes.  Stage the installed jars in
+// a temporary flat repository so both compile and runServer use the mapped
+// variants while the release still contains no bundled dependency.
+// Gradle worker JVM argument files are decoded with the Windows legacy code page. Stage local
+// compile-only jars at an ASCII path so Chinese directories and filenames cannot corrupt them.
+def stagedDependencyRoot = new File(System.getProperty('java.io.tmpdir'), 'spore-performance-compile-deps')
+
+repositories {
+    mavenCentral()
+    flatDir { dirs stagedDependencyRoot }
+}
+
+def stagedDependency = { String sourcePath, String targetName ->
+    def source = file(sourcePath)
+    def target = new File(stagedDependencyRoot, targetName)
+    if (!target.exists() || target.length() != source.length() || target.lastModified() != source.lastModified()) {
+        target.parentFile.mkdirs()
+        java.nio.file.Files.copy(source.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        target.setLastModified(source.lastModified())
+    }
+    target
+}
+
+/**
+ * Resolves one installed development dependency by its stable suffix.  The
+ * pack's display-name prefixes are intentionally allowed to be Chinese and
+ * may change; the versioned artifact suffix is the build contract.  Failing
+ * on zero or multiple candidates is deliberate: silently taking an arbitrary
+ * jar would make the release non-reproducible again.
+ */
+def stagedInstalledDependency = { String suffix, String targetName ->
+    def modsDir = file('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods')
+    def matches = modsDir.listFiles()?.findAll { it.isFile() && it.name.endsWith(suffix) }?.sort { it.name } ?: []
+    if (matches.size() != 1) {
+        throw new GradleException("Expected exactly one installed dependency ending in '${suffix}' under ${modsDir}; found ${matches.size()}: ${matches*.name}")
+    }
+    stagedDependency(matches[0].absolutePath, targetName)
+}
+
+// Materialise the modules before Gradle resolves the flat repository.  These
+// are copied, never modified, and remain outside the project/JAR; they only
+// make the local development run use the same mapping transform as Maven
+// dependencies.
+stagedDependency('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods/[真菌感染：孢子]spore_1.20.1_2.2.0j.jar', 'spore-2.2.0.jar')
+stagedDependency('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods/[真菌感染：协同心智前置]exhuashan_sporeai_fix-1.0.0.jar', 'sporefix-1.0.0.jar')
+stagedInstalledDependency('sporesrp-1.7.2.jar', 'sporesrp-1.7.2.jar')
+stagedInstalledDependency('touhoulittlemaid-1.5.3-forge+mc1.20.1.jar', 'touhoulittlemaid-1.5.3.jar')
+stagedInstalledDependency('embeddium-0.3.31+mc1.20.1.jar', 'embeddium-0.3.31.jar')
+stagedDependency('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods/[加速渲染]acceleratedrendering-1.0.14-1.20.1-alpha.jar', 'acceleratedrendering-1.0.14.jar')
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    // ForgeGradle remaps these installed, reobfuscated mods for the development classpath.
+    // The staging calls create flatDir artifacts named below; fg.deobf then
+    // produces the official-mapped development jars instead of passing the
+    // installed SRG bytecode through unchanged.
+    implementation fg.deobf('local.spore:spore:2.2.0')
+    compileOnly fg.deobf('local.spore:sporefix:1.0.0')
+    compileOnly fg.deobf('local.spore:sporesrp:1.7.2')
+    compileOnly fg.deobf('local.spore:touhoulittlemaid:1.5.3')
+    // Optional infection visuals and zone manager. The Sona mixins use only
+    // string targets, so no Sona classes are required to compile. This keeps
+    // the development build valid when Sona is intentionally absent.
+    // Client-side chunk meshing hook. The Mixin plugin skips it when Embeddium is absent.
+    compileOnly fg.deobf('local.spore:embeddium:0.3.31')
+    // Optional client mesh pipeline. Runtime interaction remains reflection based and fail-closed.
+    compileOnly fg.deobf('local.spore:acceleratedrendering:1.0.14')
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+mixin {
+    add sourceSets.main, 'spore_performance.refmap.json'
+    config 'spore_performance.mixins.json'
+    config 'spore_performance_accessors.mixins.json'
+}
+
+tasks.named('jar', Jar).configure {
+    manifest.attributes([
+            'MixinConfigs': 'spore_performance.mixins.json,spore_performance_accessors.mixins.json',
+            'Specification-Title': mod_id,
+            'Specification-Version': '1',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor': 'ARXYT'
+    ])
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // Gradle worker argument files use the Windows legacy code page and corrupt this project's Chinese path.
+    options.fork = false
+}
+// The project is intentionally stored under a Chinese path.  On Windows, the
+// Gradle test worker passes its class path through a JVM argument file, which
+// can decode such paths using the legacy system code page.  Stage only the
+// compiled project outputs at a stable ASCII location so `check` cannot turn
+// into a false pass/fail because the worker cannot load its own test classes.
+def stagedTestRuntime = new File(System.getProperty('java.io.tmpdir'),
+        "spore-performance-test-runtime-${Integer.toUnsignedString(project.projectDir.absolutePath.hashCode())}")
+tasks.register('stageTestRuntime', Sync) {
+    dependsOn tasks.named('testClasses')
+    from(sourceSets.main.output) { into 'main' }
+    from(sourceSets.test.output) { into 'test' }
+    into stagedTestRuntime
+}
+tasks.named('test', Test).configure {
+    dependsOn tasks.named('stageTestRuntime')
+    useJUnitPlatform()
+    testClassesDirs = files(new File(stagedTestRuntime, 'test'))
+    classpath = files(new File(stagedTestRuntime, 'test'), new File(stagedTestRuntime, 'main')) +
+            (sourceSets.test.runtimeClasspath - sourceSets.test.output - sourceSets.main.output)
+}
+
+/**
+ * A class copied into a target by Mixin must never directly reference a class
+ * from this declared mixin package. Mixin rejects such references at runtime
+ * with IllegalClassLoadError. In particular, nested and anonymous helper
+ * classes compile to `mixin/Foo$Bar.class`, which is unsafe once referenced by
+ * an injected method.
+ */
+def mixinInternalPackage = 'com/arxyt/sporeperformance/mixin/'
+tasks.register('verifyMixinPackageSafety') {
+    dependsOn tasks.named('classes')
+    group = 'verification'
+    description = 'Rejects direct runtime references to classes in the declared Mixin package.'
+    doLast {
+        def classesDir = sourceSets.main.output.classesDirs.files.find { it.exists() }
+        if (classesDir == null) {
+            throw new GradleException('Main class output directory is unavailable for Mixin safety verification.')
+        }
+
+        def mixinRoot = new File(classesDir, mixinInternalPackage)
+        def mixinClasses = fileTree(mixinRoot).matching { include '**/*.class' }.files
+        def nestedMixinClasses = mixinClasses.findAll { it.name.contains('$') }
+        if (!nestedMixinClasses.isEmpty()) {
+            def files = nestedMixinClasses.collect { it.absolutePath }.sort().join(', ')
+            throw new GradleException("Mixin package must not contain nested or anonymous runtime classes: ${files}")
+        }
+
+        def mixinClassNames = mixinClasses.collect {
+            mixinInternalPackage + mixinRoot.toPath().relativize(it.toPath()).toString().replace('\\', '/').replaceAll(/\.class$/, '')
+        }.findAll { !it.endsWith('/package-info') }
+
+        def directReferences = []
+        fileTree(classesDir).matching {
+            include '**/*.class'
+            exclude "${mixinInternalPackage}**"
+        }.files.each { file ->
+            def content = new String(file.bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+            if (content.contains(mixinInternalPackage)) {
+                directReferences << file.absolutePath
+            }
+        }
+        if (!directReferences.isEmpty()) {
+            throw new GradleException("Non-mixin classes must not reference the declared Mixin package: ${directReferences.sort().join(', ')}")
+        }
+
+        def crossMixinReferences = []
+        mixinClasses.each { file ->
+            def current = mixinInternalPackage + mixinRoot.toPath().relativize(file.toPath()).toString().replace('\\', '/').replaceAll(/\.class$/, '')
+            def content = new String(file.bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+            mixinClassNames.findAll { it != current && content.contains(it) }.each { referenced ->
+                crossMixinReferences << "${current} -> ${referenced}"
+            }
+        }
+        if (!crossMixinReferences.isEmpty()) {
+            throw new GradleException("Mixin classes must not directly reference other mixin classes: ${crossMixinReferences.sort().join(', ')}")
+        }
+    }
+}
+
+tasks.named('check').configure { dependsOn tasks.named('verifyMixinPackageSafety') }
+tasks.named('jar').configure { dependsOn tasks.named('verifyMixinPackageSafety') }

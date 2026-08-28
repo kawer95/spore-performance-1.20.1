@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.arxyt.sporeperformance.accessor",
+  "refmap": "spore_performance.refmap.json",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "EntityBaseTickAccessor"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

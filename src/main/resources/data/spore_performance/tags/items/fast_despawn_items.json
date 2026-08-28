@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "spore:biomass",
+    "spore:fang",
+    "spore:tendons"
+  ]
+}
