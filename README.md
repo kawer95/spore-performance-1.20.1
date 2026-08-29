@@ -1,5 +1,7 @@
 # Spore Performance 1.20.1
 
+本项目以 MIT License 发布，详见 [LICENSE](LICENSE)。
+
 ## 服务端实体与掉落物优化
 
 - 内置 Spore 掉落物区块批量合并默认关闭，避免与 Harium/Lithium 重复；常见生物质废料默认 60 秒、普通 Spore 掉落默认 120 秒消失。
