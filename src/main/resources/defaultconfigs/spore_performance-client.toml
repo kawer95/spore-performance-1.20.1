@@ -110,6 +110,8 @@ postHalfResolution = false
 fungalDecorationDistanceCull = false
 # 真菌装饰方块模型的显示距离（格）；方块状态、碰撞、光照和服务端逻辑不受影响。
 fungalDecorationRenderDistance = 32
+# 指挥模式使用实际摄像机为中心时的真菌装饰显示距离（格）；高空镜头默认扩大到128格。
+fungalDecorationCommandCameraRenderDistance = 128
 # 观察点移动多少格后更新一次剔除边界；越小边界越及时，但区段重建更频繁。
 fungalDecorationCameraStep = 2
 # 每个客户端 Tick 最多请求重建多少个含目标方块的区段；越大更新越快，但瞬时压力越高。

@@ -103,6 +103,7 @@ public final class OptionalCompatProbe {
         return List.of(
                 "Spore Performance: spore=" + version("spore") + ", sporefix=" + state("sporefix") + "(" + version("exhuashan_sporeai_fix") + "), sporesrp=" + state("sporesrp") + "(" + version("sporesrp") + ")",
                 "Safe: " + String.join(", ", safePatchStates()),
+                "Correctness: " + String.join(", ", correctnessPatchStates()),
                 "Aggressive: " + String.join(", ", aggressivePatchStates()),
                 "Client: hinderburg-index=" + enabled(read(PerformanceConfig.CLIENT_HINDERBURG_INDEX))
                         + ", sporesrp-hud=" + patched("OptionalSporeSrpHudMixin", read(PerformanceConfig.CLIENT_SPORESRP_HUD_HOTBAR))
@@ -111,8 +112,19 @@ public final class OptionalCompatProbe {
 
     private static List<String> patchStates() {
         List<String> states = new ArrayList<>(safePatchStates());
+        states.addAll(correctnessPatchStates());
         states.addAll(aggressivePatchStates());
         return states;
+    }
+
+    private static List<String> correctnessPatchStates() {
+        return List.of(
+                "entity-data-owners=" + combinedPatchState(
+                        "HyperEntityDataOwnerMixin", "HowlerEntityDataOwnerMixin", "ScamperEntityDataOwnerMixin",
+                        "BrauereiEntityDataOwnerMixin", "VigilEntityDataOwnerMixin", "TumoroidNukeEntityDataOwnerMixin"),
+                "block-entity-sync=" + combinedPatchState(
+                        "OvergrownSpawnerEntityMixin", "IncubatorBlockEntitySyncMixin", "CduBlockEntitySyncMixin")
+        );
     }
 
     private static List<String> safePatchStates() {
@@ -181,6 +193,15 @@ public final class OptionalCompatProbe {
     private static String aggressive(String module, boolean enabled) { return enabled ? gated(module, true) : (state(module) == State.INCOMPATIBLE ? State.INCOMPATIBLE.name() : State.SKIPPED.name()); }
     private static String patched(String patch, boolean enabled) { return enabled ? MixinPatchStatus.state(patch).name() : State.SKIPPED.name(); }
     private static String aggressivePatched(String patch, boolean enabled) { return enabled ? MixinPatchStatus.state(patch).name() : State.SKIPPED.name(); }
+    private static State combinedPatchState(String... patches) {
+        boolean allActive = true;
+        for (String patch : patches) {
+            State state = MixinPatchStatus.state(patch);
+            if (state == State.INCOMPATIBLE) return State.INCOMPATIBLE;
+            if (state != State.ACTIVE) allActive = false;
+        }
+        return allActive ? State.ACTIVE : State.SKIPPED;
+    }
 
     private static String version(String id) {
         return ModList.get().getModContainerById(id).map(container -> container.getModInfo().getVersion().toString()).orElse("absent");

@@ -75,7 +75,6 @@ def stagedInstalledDependency = { String suffix, String targetName ->
 // make the local development run use the same mapping transform as Maven
 // dependencies.
 stagedDependency('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods/[真菌感染：孢子]spore_1.20.1_2.2.0j.jar', 'spore-2.2.0.jar')
-stagedDependency('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods/[真菌感染：协同心智前置]exhuashan_sporeai_fix-1.0.0.jar', 'sporefix-1.0.0.jar')
 stagedInstalledDependency('sporesrp-1.7.2.jar', 'sporesrp-1.7.2.jar')
 stagedInstalledDependency('touhoulittlemaid-1.5.3-forge+mc1.20.1.jar', 'touhoulittlemaid-1.5.3.jar')
 stagedInstalledDependency('embeddium-0.3.31+mc1.20.1.jar', 'embeddium-0.3.31.jar')
@@ -88,7 +87,6 @@ dependencies {
     // produces the official-mapped development jars instead of passing the
     // installed SRG bytecode through unchanged.
     implementation fg.deobf('local.spore:spore:2.2.0')
-    compileOnly fg.deobf('local.spore:sporefix:1.0.0')
     compileOnly fg.deobf('local.spore:sporesrp:1.7.2')
     compileOnly fg.deobf('local.spore:touhoulittlemaid:1.5.3')
     // Optional infection visuals and zone manager. The Sona mixins use only

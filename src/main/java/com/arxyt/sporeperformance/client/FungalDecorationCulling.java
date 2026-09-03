@@ -60,6 +60,8 @@ public final class FungalDecorationCulling {
     private static Object currentLevel;
     private static boolean lastConfiguredEnabled;
     private static int lastDistance = 32;
+    private static int lastCommandDistance = 128;
+    private static boolean lastCommandCameraMode;
 
     /** Called from Embeddium chunk worker threads. */
     public static boolean shouldCull(BlockState state, BlockPos pos) {
@@ -92,25 +94,35 @@ public final class FungalDecorationCulling {
 
         boolean configuredEnabled = PerformanceConfig.CLIENT_FUNGAL_DECORATION_DISTANCE_CULL.get();
         int configuredDistance = PerformanceConfig.CLIENT_FUNGAL_DECORATION_DISTANCE.get();
-        if (configuredEnabled != lastConfiguredEnabled || configuredDistance != lastDistance) {
+        int configuredCommandDistance = PerformanceConfig.CLIENT_FUNGAL_DECORATION_COMMAND_DISTANCE.get();
+        boolean commandCameraMode = configuredEnabled && DominionSwordCameraBridge.detachedCameraActive();
+        int effectiveDistance = commandCameraMode ? configuredCommandDistance : configuredDistance;
+        if (configuredEnabled != lastConfiguredEnabled || configuredDistance != lastDistance
+                || configuredCommandDistance != lastCommandDistance) {
             lastConfiguredEnabled = configuredEnabled;
             lastDistance = configuredDistance;
+            lastCommandDistance = configuredCommandDistance;
             CullSnapshot old = cullSnapshot;
             cullSnapshot = new CullSnapshot(configuredEnabled, old.cameraReady, old.cameraX, old.cameraY,
-                    old.cameraZ, (double) configuredDistance * configuredDistance);
+                    old.cameraZ, (double) effectiveDistance * effectiveDistance);
             enqueueAllKnownSections();
         }
 
-        Vec3 position = minecraft.player.getEyePosition();
+        Vec3 position = selectViewpoint(commandCameraMode, minecraft.player.getEyePosition(),
+                minecraft.gameRenderer.getMainCamera().getPosition());
         int step = PerformanceConfig.CLIENT_FUNGAL_DECORATION_CAMERA_STEP.get();
         CullSnapshot old = cullSnapshot;
-        if (!old.cameraReady) {
-            setCamera(position);
+        if (commandCameraMode != lastCommandCameraMode) {
+            lastCommandCameraMode = commandCameraMode;
+            setCamera(position, effectiveDistance);
+            enqueueAllKnownSections();
+        } else if (!old.cameraReady) {
+            setCamera(position, effectiveDistance);
             enqueueAllKnownSections();
         } else if (position.distanceToSqr(old.cameraX, old.cameraY, old.cameraZ) >= (double) step * step) {
-            setCamera(position);
+            setCamera(position, effectiveDistance);
             if (old.enabled) enqueueBoundarySections(old.cameraX, old.cameraY, old.cameraZ,
-                    position.x, position.y, position.z, lastDistance);
+                    position.x, position.y, position.z, effectiveDistance);
         }
 
         drainRebuildQueue(minecraft, PerformanceConfig.CLIENT_FUNGAL_DECORATION_REBUILDS_PER_TICK.get());
@@ -148,6 +160,17 @@ public final class FungalDecorationCulling {
         if (maxDistance <= radiusSqr) return -1; // all block centres are visible
         if (minDistance > radiusSqr) return 1;   // all block centres are culled
         return 0;                                // section crosses the boundary
+    }
+
+    /** Selects the culling centre without coupling tests or normal mode to a camera mod. */
+    static Vec3 selectViewpoint(boolean commandCameraMode, Vec3 playerEye, Vec3 renderedCamera) {
+        if (commandCameraMode && renderedCamera != null
+                && Double.isFinite(renderedCamera.x)
+                && Double.isFinite(renderedCamera.y)
+                && Double.isFinite(renderedCamera.z)) {
+            return renderedCamera;
+        }
+        return playerEye;
     }
 
     private static double axisDistance(double point, double min, double max, boolean farthest) {
@@ -230,15 +253,19 @@ public final class FungalDecorationCulling {
         return result;
     }
 
-    private static void setCamera(Vec3 position) {
+    private static void setCamera(Vec3 position, int renderDistance) {
         CullSnapshot old = cullSnapshot;
-        cullSnapshot = new CullSnapshot(old.enabled, true, position.x, position.y, position.z, old.renderDistanceSqr);
+        cullSnapshot = new CullSnapshot(old.enabled, true, position.x, position.y, position.z,
+                (double) renderDistance * renderDistance);
     }
 
     private static void clear() {
         currentLevel = null;
         cullSnapshot = CullSnapshot.disabled();
         lastConfiguredEnabled = false;
+        lastDistance = 32;
+        lastCommandDistance = 128;
+        lastCommandCameraMode = false;
         // Registries outlive a client world. Keep the resolved singleton Block references so the
         // next world's first asynchronous mesh build can be indexed before its first client tick.
         TARGET_SECTIONS.clear();

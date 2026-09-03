@@ -117,6 +117,15 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
             ,Map.entry("BileProjectileLifetimeMixin", Set.of("m_8119_"))
             ,Map.entry("BusserAirNavigationMixin", Set.of("tryShortcut", "sweep"))
             ,Map.entry("BusserVariantMixin", Set.of("m_7350_", "addVariantGoals"))
+            ,Map.entry("HyperEntityDataOwnerMixin", Set.of("<clinit>"))
+            ,Map.entry("HowlerEntityDataOwnerMixin", Set.of("<clinit>"))
+            ,Map.entry("ScamperEntityDataOwnerMixin", Set.of("<clinit>"))
+            ,Map.entry("BrauereiEntityDataOwnerMixin", Set.of("<clinit>"))
+            ,Map.entry("VigilEntityDataOwnerMixin", Set.of("<clinit>"))
+            ,Map.entry("TumoroidNukeEntityDataOwnerMixin", Set.of("<clinit>"))
+            ,Map.entry("IncubatorBlockEntitySyncMixin", Set.of("setFuel", "m_6836_", "m_7407_", "m_6211_"))
+            ,Map.entry("CduBlockEntitySyncMixin", Set.of("setFuel", "serverTick"))
+            ,Map.entry("OvergrownSpawnerEntityMixin", Set.of("feed"))
     );
     private static final Map<String, Set<String>> EXPECTED_SIGNATURES = Map.of(
             "OptionalSonaCanChunkMixin", Set.of(

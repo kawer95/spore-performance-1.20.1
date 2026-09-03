@@ -22,11 +22,11 @@
 
 Spore `2.2.0j` 的 Forge 1.20.1 性能附属，modId 为 `spore_performance`。它硬依赖 Spore；`exhuashan_sporeai_fix` 和 `sporesrp` 是软依赖，绝不打包进本 JAR。
 
-目标环境为 Java 17、Forge `47.4.3`、Official Mappings。已按实际整合包的 Spore `2.2.0j`、AI Fix `1.0.0`、sporesrp `1.7.2` 反编译签名验证。
+目标环境为 Java 17、Forge `47.4.22`、Official Mappings。已按实际整合包的 Spore `2.2.0j`、AI Fix `1.0.0`、sporesrp `1.7.2` 反编译签名验证。
 
 ## 安装
 
-把 `build/libs/spore_performance-1.0.6.jar` 放进整合包 `mods`，不要替换 Spore、AI Fix 或 sporesrp 原 JAR。第一次启动会生成：
+把 `build/libs/spore_performance-1.0.8.jar` 放进整合包 `mods`，不要替换 Spore、AI Fix 或 sporesrp 原 JAR。第一次启动会生成：
 
 - `config/spore_performance-common.toml`
 - `config/spore_performance-client.toml`
@@ -48,6 +48,12 @@ Spore `2.2.0j` 的 Forge 1.20.1 性能附属，modId 为 `spore_performance`。�
 ```
 
 `status` 会显示每个可选集成和 Mixin 补丁的 `ACTIVE`、`SKIPPED` 或 `INCOMPATIBLE` 状态。检测失败时该独立项会 fail-closed，不影响其他补丁或服务器启动。
+
+## Spore 正确性修复
+
+- 修正 Hyper、Howler、Scamper、Brauerei、Vigil 与 Tumoroid Nuke 把同步字段注册到其他实体类的问题，避免类加载顺序污染实体数据索引。该修复固定双端启用，服务端与客户端必须使用同一版附属。
+- 感染刷怪笼现在把计时器写入初始区块同步标签；孵化器在物品或启停状态改变时发送更新；CDU 在启动与燃料耗尽时同步渲染状态。更新仅发生于可见状态转换，不逐 Tick 广播燃料。
+- 这些修复针对 Spore `2.2.0j` 的实际发布 JAR，并纳入 Mixin 字节码合约与 `/sporeperformance status` 状态检查。
 
 ## 真菌单位上限
 
@@ -75,6 +81,8 @@ Spore `2.2.0j` 的 Forge 1.20.1 性能附属，modId 为 `spore_performance`。�
 `spore_performance-client.toml` 的 `[localRendering] fungalDecorationDistanceCull` 默认关闭。安装 Embeddium 后可以独立开启：目标方块只在观察点默认 `32` 格内加入区块网格，方块状态、碰撞、光照、选取和服务端逻辑均不改变。
 
 当前目标为 `biomass_bulb`、`blomfung`、`bloomfung2`、`exploding_lump`、`fang_lump`、`fungal_clamp`、`fungal_stem_sapling`、`fungal_stem`、`fungal_stem_top`、`growth_mycelium`、`growths_small`、`remains` 和 `bile_lump`。玩家每移动默认 2 格更新边界，每 Tick 最多请求重建 8 个确实含这些方块的区段，避免一次性重建整个视距。
+
+安装 `Dominion Sword` 后，指挥模式会自动切换为实际渲染摄像机作为真菌装饰剔除中心；镜头移动时显示摄像机附近的植物，而不是仍围绕玩家实体。指挥模式默认使用 `fungalDecorationCommandCameraRenderDistance = 128` 格，弥补高空镜头相对地面的视距损失；普通模式仍使用 `fungalDecorationRenderDistance = 32` 格。退出指挥模式后恢复玩家眼睛位置。该兼容通过缓存的软反射桥接实现，缺少统御之剑或签名变化时自动回退普通玩家视点，不增加硬依赖。
 
 此功能不能与“Spore诊断-隐藏高密度真菌地表”全隐藏资源包同时使用；资源包会让 32 格内也没有原模型。改变开关或距离支持热重载，边界会按配置预算逐段恢复。
 

@@ -30,6 +30,7 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.BooleanValue CLIENT_SPORESRP_HUD_IN_GAMEPLAY;
     public static final ForgeConfigSpec.BooleanValue CLIENT_FUNGAL_DECORATION_DISTANCE_CULL;
     public static final ForgeConfigSpec.IntValue CLIENT_FUNGAL_DECORATION_DISTANCE;
+    public static final ForgeConfigSpec.IntValue CLIENT_FUNGAL_DECORATION_COMMAND_DISTANCE;
     public static final ForgeConfigSpec.IntValue CLIENT_FUNGAL_DECORATION_CAMERA_STEP;
     public static final ForgeConfigSpec.IntValue CLIENT_FUNGAL_DECORATION_REBUILDS_PER_TICK;
     public static final ForgeConfigSpec.BooleanValue CLIENT_DEFER_ILLUSION_ENTITY_CREATION;
@@ -725,6 +726,8 @@ public final class PerformanceConfig {
                 .define("fungalDecorationDistanceCull", false);
         CLIENT_FUNGAL_DECORATION_DISTANCE = client.comment("真菌装饰方块模型的显示距离（格）；方块状态、碰撞、光照和服务端逻辑不受影响。")
                 .defineInRange("fungalDecorationRenderDistance", 32, 8, 256);
+        CLIENT_FUNGAL_DECORATION_COMMAND_DISTANCE = client.comment("指挥模式使用实际摄像机为中心时的真菌装饰显示距离（格）；高空镜头默认扩大到128格。")
+                .defineInRange("fungalDecorationCommandCameraRenderDistance", 128, 8, 512);
         CLIENT_FUNGAL_DECORATION_CAMERA_STEP = client.comment("观察点移动多少格后更新一次剔除边界；越小边界越及时，但区段重建更频繁。")
                 .defineInRange("fungalDecorationCameraStep", 2, 1, 16);
         CLIENT_FUNGAL_DECORATION_REBUILDS_PER_TICK = client.comment("每个客户端 Tick 最多请求重建多少个含目标方块的区段；越大更新越快，但瞬时压力越高。")

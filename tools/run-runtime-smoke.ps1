@@ -52,7 +52,7 @@ if ($ModuleSet -eq 'sporesrp' -or $ModuleSet -eq 'full') { $required += $sporeSr
 if ($required | Where-Object { $null -eq $_ }) { throw 'One or more required smoke-test JARs are missing. Build the add-on before running this script.' }
 # The isolated server keeps no other test mods; remove only the four JAR naming families that
 # this script owns so the requested optional-dependency matrix cannot inherit a stale JAR.
-foreach ($pattern in @('*spore_1.20.1_2.2.0j.jar', '*exhuashan_sporeai_fix-1.0.0.jar', 'sporesrp-1.7.2.jar', 'spore_performance-*.jar')) {
+foreach ($pattern in @('*spore_1.20.1_2.2.0j.jar', '*exhuashan_sporeai_fix-1.0.0.jar', '*sporesrp-1.7.2.jar', 'spore_performance-*.jar')) {
     Get-ChildItem -LiteralPath $mods -Filter $pattern -ErrorAction SilentlyContinue | Remove-Item -Force
 }
 foreach ($jar in $required) { Copy-Item -LiteralPath $jar.FullName -Destination (Join-Path $mods $jar.Name) -Force }
@@ -63,10 +63,12 @@ if ($null -ne $tacz) {
 
 Set-Content -LiteralPath (Join-Path $runtime 'eula.txt') -Value 'eula=true' -NoNewline -Encoding Ascii
 $serverProperties = Join-Path $runtime 'server.properties'
+$smokeLevelName = "world-smoke-$ModuleSet"
 if (Test-Path -LiteralPath $serverProperties) {
     $propertiesText = Get-Content -LiteralPath $serverProperties -Raw
     $propertiesText = $propertiesText -replace '(?m)^server-port=\d+$', "server-port=$SmokePort"
     $propertiesText = $propertiesText -replace '(?m)^query.port=\d+$', "query.port=$SmokePort"
+    $propertiesText = $propertiesText -replace '(?m)^level-name=.*$', "level-name=$smokeLevelName"
     Write-Utf8NoBom -Path $serverProperties -Value $propertiesText
 }
 $commonConfig = Join-Path $runtime 'config\spore_performance-common.toml'
@@ -102,7 +104,7 @@ if ($DebugTrace) {
 # construct before the server reports ready.  In particular, it covers the
 # CalamityPathNavigation constructor path that previously threw
 # IllegalClassLoadError only after a Stahlmorder was created in-game.
-$probeRoot = Join-Path $runtime 'world\datapacks\spore-performance-calamity-probe'
+$probeRoot = Join-Path $runtime "$smokeLevelName\datapacks\spore-performance-calamity-probe"
 if (Test-Path -LiteralPath $probeRoot) { Remove-Item -LiteralPath $probeRoot -Recurse -Force }
 if ($ProbeCalamity) {
     $loadTag = Join-Path $probeRoot 'data\minecraft\tags\functions'
@@ -134,9 +136,17 @@ summon spore:tendril 38 80 0
 summon spore:bile 40 82 0 {Motion:[0.1d,0.0d,0.0d]}
 summon spore:hohlfresser 44 80 0
 summon spore:grakensenker 48 80 0
+summon spore:grober 52 80 0
+summon spore:howler 56 80 0
+summon spore:scamper 60 80 0
+summon spore:braurei 64 80 0
+summon spore:vigil 68 80 0
+summon spore:tumoroid_nuke 72 80 0
 summon item 48 80 0 {Item:{id:"spore:biomass",Count:32b}}
 summon item 49 80 0 {Item:{id:"spore:biomass",Count:32b}}
 setblock 40 80 0 spore:overgrown_spawner
+setblock 42 80 0 spore:incubator
+setblock 44 80 2 spore:cdu
 '@
 }
 $latestLog = Join-Path $logs 'latest.log'
