@@ -26,7 +26,7 @@ Spore `2.2.0j` 的 Forge 1.20.1 性能附属，modId 为 `spore_performance`。�
 
 ## 安装
 
-把 `build/libs/spore_performance-1.0.8.jar` 放进整合包 `mods`，不要替换 Spore、AI Fix 或 sporesrp 原 JAR。第一次启动会生成：
+把 `build/libs/spore_performance-1.0.9.jar` 放进整合包 `mods`，不要替换 Spore、AI Fix 或 sporesrp 原 JAR。第一次启动会生成：
 
 - `config/spore_performance-common.toml`
 - `config/spore_performance-client.toml`
