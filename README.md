@@ -14,7 +14,7 @@
 ## Spore AI 底层重构
 
 - `[refactor.ai]` 默认启用维度级三维实体索引、共享感知帧、事件驱动威胁传播和稳定伙伴分配；原始目标Predicate、攻击、伤害与技能状态机不变。
-- `[refactor.navigation]` 默认启用路径请求合并和短期原生路径共享。普通地面单位的长路径可使用不可变方块快照在后台生成粗走廊，最终局部路径仍由实体导航器在服务端线程验证。
+- `[refactor.navigation]` 默认启用路径请求合并和短期原生路径共享。复用路径会从实体当前位置附近的前向节点继续，不会每 Tick 回到缓存路径的旧起点；无法抵达目标的部分路径不进入缓存。普通地面单位的长路径可使用不可变方块快照在后台生成粗走廊，最终局部路径仍由实体导航器在服务端线程验证。
 - Hybrid、Calamity、飞行、水下、攀爬和地下导航均享受请求合并；不适合二维快照的特殊导航自动保留原NodeEvaluator。
 - Spore实体自定义Tick内的LivingEntity范围查询统一进入共享索引；非生物查询、客户端和非Spore调用不接管。
 - `[diagnostics.aiRefactor] metrics=true` 可按实体类型统计完整Tick、目标、LOS、群体广播和路径队列；`shadowComparison=true`只比较新旧目标结果，不改变行为。
@@ -26,7 +26,7 @@ Spore `2.2.0j` 的 Forge 1.20.1 性能附属，modId 为 `spore_performance`。�
 
 ## 安装
 
-把 `build/libs/spore_performance-1.0.9.jar` 放进整合包 `mods`，不要替换 Spore、AI Fix 或 sporesrp 原 JAR。第一次启动会生成：
+把 `build/libs/spore_performance-1.0.10.jar` 放进整合包 `mods`，不要替换 Spore、AI Fix 或 sporesrp 原 JAR。第一次启动会生成：
 
 - `config/spore_performance-common.toml`
 - `config/spore_performance-client.toml`

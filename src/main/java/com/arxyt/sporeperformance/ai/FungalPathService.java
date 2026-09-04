@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadFactory;
 /** Shared native-path copies plus immutable-snapshot asynchronous coarse corridors. */
 public final class FungalPathService implements AutoCloseable {
     private static final int MAX_GRID = 64;
+    private static final int MAX_CACHED_PATH_RESUME_SCAN = 8;
     private final ServerLevel level;
     private final ExecutorService workers;
     private final Queue<CorridorRequest> snapshots = new ArrayDeque<>();
@@ -80,12 +81,19 @@ public final class FungalPathService implements AutoCloseable {
         if (DebugTrace.enabled(DebugTrace.Category.NAVIGATION))
             DebugTrace.event(DebugTrace.Category.NAVIGATION, level, DebugTrace.trace(mob), mob,
                     "native_cache_hit", "target=" + target.getUUID() + ",nodes=" + cached.path.getNodeCount());
-        return copy(cached.path);
+        return copyAtCurrentProgress(cached.path, mob);
     }
 
     public void recordNativePath(Mob mob, Entity target, @Nullable Path path) {
         if (path == null) {
             CalamityTrace.internalPath(mob, "native_result", "target=" + target.getUUID() + ",success=false,terrainVersion=" + terrainVersion);
+            return;
+        }
+        if (!path.canReach()) {
+            nativePaths.remove(NativeKey.of(mob, target));
+            CalamityTrace.internalPath(mob, "native_result", "target=" + target.getUUID()
+                    + ",success=partial,stored=false,nodes=" + path.getNodeCount());
+            PerformanceMetrics.increment("ai_refactor.path.partial_not_cached");
             return;
         }
         if (!enabledFor(mob) || !PerformanceConfig.REFACTOR_SHARED_CORRIDORS.get()) return;
@@ -114,12 +122,19 @@ public final class FungalPathService implements AutoCloseable {
         PerformanceMetrics.increment("ai_refactor.path.position_cache_hits");
         CalamityTrace.internalPath(mob, "position_cache_hit", "target=" + target + ",nodes=" + cached.path.getNodeCount()
                 + ",sections=" + cached.route.sections.size());
-        return copy(cached.path);
+        return copyAtCurrentProgress(cached.path, mob);
     }
 
     public void recordNativePath(Mob mob, BlockPos target, @Nullable Path path) {
         if (path == null) {
             CalamityTrace.internalPath(mob, "position_result", "target=" + target + ",success=false");
+            return;
+        }
+        if (!path.canReach()) {
+            positionPaths.remove(PositionKey.of(mob, target));
+            CalamityTrace.internalPath(mob, "position_result", "target=" + target
+                    + ",success=partial,stored=false,nodes=" + path.getNodeCount());
+            PerformanceMetrics.increment("ai_refactor.path.partial_not_cached");
             return;
         }
         if (!enabledFor(mob) || !PerformanceConfig.REFACTOR_CALAMITY_POSITION_PATH_CACHE.get()) return;
@@ -338,6 +353,41 @@ public final class FungalPathService implements AutoCloseable {
         Path copy = new Path(nodes, source.getTarget(), source.canReach());
         copy.setNextNodeIndex(Math.min(source.getNextNodeIndex(), nodes.size()));
         return copy;
+    }
+
+    /**
+     * A cached Path belongs to an earlier position inside the same four-block cache cell. Copying
+     * its original node index on every move request makes a moving mob turn back toward nodes it
+     * has already passed. Resume at the nearest node in a bounded forward window instead.
+     */
+    private static Path copyAtCurrentProgress(Path source, Mob mob) {
+        Path copy = copy(source);
+        copy.setNextNodeIndex(resumeIndex(copy, mob.getX(), mob.getY(), mob.getZ()));
+        return copy;
+    }
+
+    static int resumeIndex(Path path, double x, double y, double z) {
+        int count = path.getNodeCount();
+        if (count == 0) return 0;
+        int start = Mth.clamp(path.getNextNodeIndex(), 0, count - 1);
+        int limit = Math.min(count, start + MAX_CACHED_PATH_RESUME_SCAN);
+        int best = start;
+        double bestDistance = nodeDistanceSqr(path.getNode(start), x, y, z);
+        for (int index = start + 1; index < limit; ++index) {
+            double distance = nodeDistanceSqr(path.getNode(index), x, y, z);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = index;
+            }
+        }
+        return best;
+    }
+
+    private static double nodeDistanceSqr(Node node, double x, double y, double z) {
+        double dx = node.x + 0.5D - x;
+        double dy = node.y - y;
+        double dz = node.z + 0.5D - z;
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private static <K, V> void trim(LinkedHashMap<K, V> map, int max) {
