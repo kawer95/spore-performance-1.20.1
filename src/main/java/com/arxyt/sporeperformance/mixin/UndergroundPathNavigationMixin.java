@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.level.pathfinder.Path;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -20,19 +21,47 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Integrates Hohlfresser's specialised tunnel navigation without replacing underground physics. */
 @Mixin(value = UndergroundPathNavigation.class, remap = false)
 abstract class UndergroundPathNavigationMixin {
+    @Unique private boolean sporeperformance$internalEntityPathRequest;
+    @Unique private boolean sporeperformance$externalEntityPathAttempt;
+    @Unique private boolean sporeperformance$suppressedExternalEntityPath;
+
     @Inject(method = "m_6570_", at = @At("HEAD"), cancellable = true)
     private void sporeperformance$sharedUndergroundEntityPath(Entity target, int reach, CallbackInfoReturnable<Path> callback) {
         Mob mob = sporeperformance$mob();
         if (!enabled(mob) || !(mob.level() instanceof ServerLevel level)) return;
-        Path cached = FungalAiRuntime.INSTANCE.get(level).paths.cachedNativePath(mob, target);
+        var runtime = FungalAiRuntime.INSTANCE.get(level);
+        sporeperformance$externalEntityPathAttempt = false;
+        sporeperformance$suppressedExternalEntityPath = false;
+        if (!sporeperformance$internalEntityPathRequest) {
+            PathNavigation navigation = (PathNavigation) (Object) this;
+            Calamity calamity = (Calamity) mob;
+            if (runtime.calamities.suppressEntityPathRequest(calamity, target, navigation)) {
+                sporeperformance$suppressedExternalEntityPath = true;
+                callback.setReturnValue(navigation.getPath());
+                return;
+            }
+            runtime.calamities.beginEntityPathRequest(calamity, target);
+            sporeperformance$externalEntityPathAttempt = true;
+        }
+        Path cached = runtime.paths.cachedNativePath(mob, target);
         if (cached != null) callback.setReturnValue(cached);
     }
 
     @Inject(method = "m_6570_", at = @At("RETURN"))
     private void sporeperformance$recordUndergroundEntityPath(Entity target, int reach, CallbackInfoReturnable<Path> callback) {
         Mob mob = sporeperformance$mob();
-        if (enabled(mob) && mob.level() instanceof ServerLevel level)
-            FungalAiRuntime.INSTANCE.get(level).paths.recordNativePath(mob, target, callback.getReturnValue());
+        if (enabled(mob) && mob.level() instanceof ServerLevel level) {
+            var runtime = FungalAiRuntime.INSTANCE.get(level);
+            if (sporeperformance$suppressedExternalEntityPath) {
+                sporeperformance$suppressedExternalEntityPath = false;
+                return;
+            }
+            runtime.paths.recordNativePath(mob, target, callback.getReturnValue());
+            if (sporeperformance$externalEntityPathAttempt) {
+                runtime.calamities.completeEntityPathRequest((Calamity) mob, target, callback.getReturnValue());
+                sporeperformance$externalEntityPathAttempt = false;
+            }
+        }
     }
 
     @Inject(method = "m_7864_", at = @At("HEAD"), cancellable = true)
@@ -69,10 +98,22 @@ abstract class UndergroundPathNavigationMixin {
                 callback.setReturnValue(true);
                 return;
             }
+            PathNavigation navigation = (PathNavigation) (Object) this;
+            if (runtime.calamities.suppressEntityPathRequest((Calamity) mob, target, navigation)) {
+                callback.setReturnValue(true);
+                return;
+            }
             runtime.calamities.submitEntityIntent((Calamity) mob, target, speed);
+            runtime.calamities.beginEntityPathRequest((Calamity) mob, target);
         }
         PathNavigation navigation = (PathNavigation) (Object) this;
-        Path path = navigation.createPath(target, 0);
+        Path path;
+        sporeperformance$internalEntityPathRequest = true;
+        try {
+            path = navigation.createPath(target, 0);
+        } finally {
+            sporeperformance$internalEntityPathRequest = false;
+        }
         Calamity calamity = (Calamity) mob;
         if (mob.level() instanceof ServerLevel level) {
             if (path == null) {

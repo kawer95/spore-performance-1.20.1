@@ -29,6 +29,16 @@ public final class SharedPerceptionService {
         if (!PerformanceConfig.REFACTOR_AI_ENABLED.get() || !PerformanceConfig.REFACTOR_SHARED_PERCEPTION.get()) {
             return index.query(exactBounds, type, observer);
         }
+        List<LivingEntity> frame = frame(tick, observer, exactBounds, type);
+        List<T> result = new ArrayList<>();
+        for (LivingEntity candidate : frame) {
+            if (candidate != observer && type.isInstance(candidate) && candidate.isAlive()
+                    && exactBounds.intersects(candidate.getBoundingBox())) result.add(type.cast(candidate));
+        }
+        return result;
+    }
+
+    private List<LivingEntity> frame(long tick, Entity observer, AABB exactBounds, Class<?> type) {
         beginTick(tick);
         int cellX = Mth.floor(observer.getX()) >> 5;
         int cellY = Mth.floor(observer.getY()) >> 5;
@@ -55,18 +65,17 @@ public final class SharedPerceptionService {
                 DebugTrace.event(DebugTrace.Category.PERCEPTION, level, DebugTrace.trace(observer), observer,
                         "frame_reused", "type=" + type.getName() + ",candidates=" + frame.size());
         }
-        List<T> result = new ArrayList<>();
-        for (LivingEntity candidate : frame) {
-            if (candidate != observer && type.isInstance(candidate) && candidate.isAlive()
-                    && exactBounds.intersects(candidate.getBoundingBox())) result.add(type.cast(candidate));
-        }
-        return result;
+        return frame;
     }
 
     public <T extends LivingEntity> T nearest(Mob observer, AABB bounds, Class<T> type, TargetingConditions conditions) {
         T nearest = null;
         double nearestDistance = Double.MAX_VALUE;
-        for (T candidate : candidates(observer.level().getGameTime(), observer, bounds, type)) {
+        List<LivingEntity> frame = frame(observer.level().getGameTime(), observer, bounds, type);
+        for (LivingEntity value : frame) {
+            if (value == observer || !type.isInstance(value) || !value.isAlive()
+                    || !bounds.intersects(value.getBoundingBox())) continue;
+            T candidate = type.cast(value);
             if (!conditions.test(observer, candidate)) continue;
             double distance = observer.distanceToSqr(candidate);
             if (distance < nearestDistance || distance == nearestDistance && nearest != null && candidate.getId() < nearest.getId()) {

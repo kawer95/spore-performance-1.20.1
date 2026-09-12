@@ -7,12 +7,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.fml.loading.FMLPaths;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -131,12 +128,14 @@ public final class DebugTrace {
     private static void writerLoop() {
         try {
             Files.createDirectories(FILE.getParent());
-            try (BufferedWriter writer = Files.newBufferedWriter(FILE, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+            long maxBytes = Math.max(1L, PerformanceConfig.DEBUG_MAX_FILE_MEGABYTES.get().longValue())
+                    * 1024L * 1024L;
+            try (RotatingTraceWriter writer = new RotatingTraceWriter(FILE, maxBytes,
+                    PerformanceConfig.DEBUG_BACKUP_FILES.get())) {
                 while (RUNNING.get() || !WRITE_QUEUE.isEmpty()) {
                     String line = WRITE_QUEUE.poll();
                     if (line == null) { try { Thread.sleep(25L); } catch (InterruptedException ignored) {} continue; }
-                    writer.write(line); writer.newLine();
+                    writer.writeLine(line);
                     if (WRITE_QUEUE.isEmpty()) writer.flush();
                 }
             }

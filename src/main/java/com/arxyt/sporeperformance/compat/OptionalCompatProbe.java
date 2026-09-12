@@ -123,7 +123,13 @@ public final class OptionalCompatProbe {
                         "HyperEntityDataOwnerMixin", "HowlerEntityDataOwnerMixin", "ScamperEntityDataOwnerMixin",
                         "BrauereiEntityDataOwnerMixin", "VigilEntityDataOwnerMixin", "TumoroidNukeEntityDataOwnerMixin"),
                 "block-entity-sync=" + combinedPatchState(
-                        "OvergrownSpawnerEntityMixin", "IncubatorBlockEntitySyncMixin", "CduBlockEntitySyncMixin")
+                        "OvergrownSpawnerEntityMixin", "IncubatorBlockEntitySyncMixin", "CduBlockEntitySyncMixin"),
+                "calamity-path-request-reuse=" + patched("CalamityPathNavigationMixin",
+                        read(PerformanceConfig.REFACTOR_CALAMITY_PATH_REQUEST_REUSE)),
+                "howitzer-ore-scan=" + patched("HowitzerServerOptimizationMixin",
+                        read(PerformanceConfig.REFACTOR_HOWITZER_INCREMENTAL_ORE_SCAN)),
+                "howitzer-burnable-scan=" + patched("HowitzerRangedGoalScanMixin",
+                        read(PerformanceConfig.REFACTOR_HOWITZER_BURNABLE_FAST_SCAN))
         );
     }
 

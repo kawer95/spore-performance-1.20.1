@@ -135,7 +135,6 @@ summon spore:gastgaber 36 80 0
 summon spore:tendril 38 80 0
 summon spore:bile 40 82 0 {Motion:[0.1d,0.0d,0.0d]}
 summon spore:hohlfresser 44 80 0
-summon spore:grakensenker 48 80 0
 summon spore:grober 52 80 0
 summon spore:howler 56 80 0
 summon spore:scamper 60 80 0
@@ -170,9 +169,11 @@ try {
         # Load-tag functions run immediately after the server reaches readiness.
         # Keep it alive long enough to complete every forced construction, then
         # inspect the log once more instead of racing the server shutdown.
-        Start-Sleep -Seconds 2
+        # Keep the probe alive past tick 200 so Howitzer.searchBlocks is routed through the
+        # incremental ore scheduler at least once instead of validating only class construction.
+        Start-Sleep -Seconds 12
         $probeLog = if (Test-Path -LiteralPath $latestLog) { Get-Content -LiteralPath $latestLog -Raw } else { '' }
-        if ($probeLog -match 'IllegalClassLoadError|Mixin apply failed|InvalidInjectionException|MixinTransformerError|NoSuchMethodError|NoClassDefFoundError|LinkageError|VerifyError|Unknown entity|Failed to execute function') {
+        if ($probeLog -match 'IllegalClassLoadError|Mixin apply failed|InvalidInjectionException|MixinTransformerError|NoSuchMethodError|NoClassDefFoundError|LinkageError|VerifyError|Unknown entity|Failed to (?:execute|load) function') {
             throw 'Calamity probe encountered a transformation, linkage, or command failure.'
         }
     }

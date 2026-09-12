@@ -91,6 +91,26 @@ retryTicks = 20
 maxRetryTicks = 80
 # 完全排除朽翼魔龙（Verfalldrachen），不改变其盘旋、寻路或技能逻辑。
 excludeVerfalldrachen = true
+# 复用仍有效的灾厄追击路径，并合并同 Tick 由多个 Goal 提交的重复寻路请求。
+pathRequestReuse = true
+# 灾厄成功寻路后的最短重算间隔（Tick）；每只实体会在最短和最长值之间稳定错峰。
+repathMinTicks = 10
+# 灾厄成功寻路后的最长重算间隔（Tick）；目标突变、受击和卡住会立即解除。
+repathMaxTicks = 20
+# 目标相对上次路径请求移动超过此距离时立即允许灾厄重算路径（格）。
+repathTargetMoveDistance = 4.0
+
+[refactor.howitzer]
+# 将 Howitzer 每 200 Tick 的约 3.8 万格矿物搜索拆分到多个 Tick，并且只读取已加载区块。
+incrementalOreScan = true
+# 单个 Howitzer 矿物搜索任务每 Tick 最多检查的方块数。
+orePositionsPerTaskTick = 1024
+# 所有 Howitzer 矿物搜索任务每 Tick 共享的方块检查上限。
+orePositionsPerTick = 4096
+# 所有 Howitzer 矿物搜索任务每 Tick 共享的硬耗时预算（微秒）。
+oreTimeBudgetMicros = 500
+# Howitzer 开火时用无列表分配、仅已加载区块的循环统计目标附近可燃方块。
+burnableFastScan = true
 
 [refactor.multipart]
 # 为 HohlMultipart 使用轻量服务端 Tick；保留命中箱、伤害转发、父实体同步和死亡逻辑。
@@ -137,6 +157,8 @@ compiledActionPlans = true
 foliageTimeBudgetMicros = 750
 # 感染卷须重构的全局 Tick耗时预算（微秒）。
 tendrilTimeBudgetMicros = 350
+# 菌丘侵蚀和卷须搜索合计每 Tick 的硬耗时预算（微秒）；两个队列会轮换优先级。
+schedulerTimeBudgetMicros = 900
 
 [compat]
 
@@ -374,6 +396,10 @@ sampleEveryN = 1
 maxEventsPerSecond = 500
 # 内存中保留的最近调试事件数量，供管理员命令查看。
 ringEntries = 1024
+# 普通调试 JSONL 单个文件的最大大小（MiB）；超过后自动轮转。
+maxFileMegabytes = 16
+# 普通调试 JSONL 保留的轮转备份数量。
+backupFiles = 3
 
 [diagnostics.calamityTrace]
 # 启用只记录附近灾厄生物的独立追踪日志；不会混入普通实体调试日志。
@@ -388,3 +414,7 @@ sampleIntervalTicks = 5
 maxEventsPerSecond = 240
 # 在灾厄追踪记录中写入坐标、速度和身体/头部朝向。
 includeCoordinates = true
+# 灾厄追踪 JSONL 单个文件的最大大小（MiB）；超过后自动轮转。
+maxFileMegabytes = 32
+# 灾厄追踪 JSONL 保留的轮转备份数量。
+backupFiles = 3

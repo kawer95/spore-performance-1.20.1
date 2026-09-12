@@ -38,7 +38,8 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
             "LocalTargettingGoalMixin", "FollowOthersGoalMixin", "CalamityPathNavigationMixin",
             "CalamitySmoothLookControlMixin", "CalamityMovementControlMixin", "UndergroundMovementControlMixin",
             "HindenburgLookControlMixin", "HybridPathNavigationMixin", "UndergroundPathNavigationMixin",
-            "HohlfresserMultipartSafetyMixin", "BusserAirNavigationMixin", "BusserVariantMixin");
+            "HohlfresserMultipartSafetyMixin", "BusserAirNavigationMixin", "BusserVariantMixin",
+            "HowitzerServerOptimizationMixin", "HowitzerRangedGoalScanMixin");
     private static final Set<String> SPORE_BILE_LIFETIME = Set.of("BileProjectileLifetimeMixin");
     private static final Set<String> PORTED_AI_FIX_ABSENT_ONLY = Set.of(
             "AiFixSwimmingNodeMixin", "AiFixWaterCalamityNodeMixin");
@@ -117,6 +118,8 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
             ,Map.entry("BileProjectileLifetimeMixin", Set.of("m_8119_"))
             ,Map.entry("BusserAirNavigationMixin", Set.of("tryShortcut", "sweep"))
             ,Map.entry("BusserVariantMixin", Set.of("m_7350_", "addVariantGoals"))
+            ,Map.entry("HowitzerServerOptimizationMixin", Set.of("searchBlocks"))
+            ,Map.entry("HowitzerRangedGoalScanMixin", Set.of("getBurnable"))
             ,Map.entry("HyperEntityDataOwnerMixin", Set.of("<clinit>"))
             ,Map.entry("HowlerEntityDataOwnerMixin", Set.of("<clinit>"))
             ,Map.entry("ScamperEntityDataOwnerMixin", Set.of("<clinit>"))

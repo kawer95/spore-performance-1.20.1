@@ -54,6 +54,8 @@
     "AiFixStahlLeapGuardMixin",
     "AiFixStahlmorderControlMixin",
     "AiFixStahlMeleeGoalMixin",
+    "HowitzerServerOptimizationMixin",
+    "HowitzerRangedGoalScanMixin",
     "ServerLevelEntityTickMetricsMixin",
     "LevelEntityQueryMixin",
     "SensingMetricsMixin",

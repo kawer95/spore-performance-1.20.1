@@ -200,6 +200,15 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.IntValue REFACTOR_CALAMITY_RETRY_TICKS;
     public static final ForgeConfigSpec.IntValue REFACTOR_CALAMITY_MAX_RETRY_TICKS;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_CALAMITY_EXCLUDE_VERFALLDRACHEN;
+    public static final ForgeConfigSpec.BooleanValue REFACTOR_CALAMITY_PATH_REQUEST_REUSE;
+    public static final ForgeConfigSpec.IntValue REFACTOR_CALAMITY_REPATH_MIN_TICKS;
+    public static final ForgeConfigSpec.IntValue REFACTOR_CALAMITY_REPATH_MAX_TICKS;
+    public static final ForgeConfigSpec.DoubleValue REFACTOR_CALAMITY_REPATH_TARGET_MOVE_DISTANCE;
+    public static final ForgeConfigSpec.BooleanValue REFACTOR_HOWITZER_INCREMENTAL_ORE_SCAN;
+    public static final ForgeConfigSpec.IntValue REFACTOR_HOWITZER_ORE_POSITIONS_PER_TASK_TICK;
+    public static final ForgeConfigSpec.IntValue REFACTOR_HOWITZER_ORE_POSITIONS_PER_TICK;
+    public static final ForgeConfigSpec.IntValue REFACTOR_HOWITZER_ORE_TIME_BUDGET_MICROS;
+    public static final ForgeConfigSpec.BooleanValue REFACTOR_HOWITZER_BURNABLE_FAST_SCAN;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_MULTIPART_MINIMAL_TICK;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_MULTIPART_SHARED_MELEE_QUERY;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_MOUND_MINIMAL_TICK;
@@ -218,6 +227,7 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.BooleanValue REFACTOR_FOLIAGE_COMPILED_ACTION_PLANS;
     public static final ForgeConfigSpec.IntValue REFACTOR_FOLIAGE_TIME_BUDGET_MICROS;
     public static final ForgeConfigSpec.IntValue REFACTOR_TENDRIL_TIME_BUDGET_MICROS;
+    public static final ForgeConfigSpec.IntValue REFACTOR_FUNGAL_SCHEDULER_TIME_BUDGET_MICROS;
     public static final ForgeConfigSpec.BooleanValue COMPAT_TOUHOU_POWER_POINT_OPTIMIZATION;
     public static final ForgeConfigSpec.IntValue COMPAT_TOUHOU_GROUNDED_PHYSICS_INTERVAL;
     public static final ForgeConfigSpec.BooleanValue DIAGNOSTICS_AI_REFACTOR_METRICS;
@@ -237,12 +247,16 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.IntValue DEBUG_SAMPLE_EVERY_N;
     public static final ForgeConfigSpec.IntValue DEBUG_MAX_EVENTS_PER_SECOND;
     public static final ForgeConfigSpec.IntValue DEBUG_RING_ENTRIES;
+    public static final ForgeConfigSpec.IntValue DEBUG_MAX_FILE_MEGABYTES;
+    public static final ForgeConfigSpec.IntValue DEBUG_BACKUP_FILES;
     public static final ForgeConfigSpec.BooleanValue CALAMITY_TRACE_ENABLED;
     public static final ForgeConfigSpec.IntValue CALAMITY_TRACE_RADIUS;
     public static final ForgeConfigSpec.IntValue CALAMITY_TRACE_MAX_TRACKED;
     public static final ForgeConfigSpec.IntValue CALAMITY_TRACE_SAMPLE_INTERVAL;
     public static final ForgeConfigSpec.IntValue CALAMITY_TRACE_MAX_EVENTS_PER_SECOND;
     public static final ForgeConfigSpec.BooleanValue CALAMITY_TRACE_INCLUDE_COORDINATES;
+    public static final ForgeConfigSpec.IntValue CALAMITY_TRACE_MAX_FILE_MEGABYTES;
+    public static final ForgeConfigSpec.IntValue CALAMITY_TRACE_BACKUP_FILES;
 
     static {
         ForgeConfigSpec.Builder common = new ForgeConfigSpec.Builder();
@@ -329,6 +343,26 @@ public final class PerformanceConfig {
                 .defineInRange("maxRetryTicks", 80, 20, 1200);
         REFACTOR_CALAMITY_EXCLUDE_VERFALLDRACHEN = common.comment("完全排除朽翼魔龙（Verfalldrachen），不改变其盘旋、寻路或技能逻辑。")
                 .define("excludeVerfalldrachen", true);
+        REFACTOR_CALAMITY_PATH_REQUEST_REUSE = common.comment("复用仍有效的灾厄追击路径，并合并同 Tick由多个 Goal 提交的重复寻路请求。")
+                .define("pathRequestReuse", true);
+        REFACTOR_CALAMITY_REPATH_MIN_TICKS = common.comment("灾厄成功寻路后的最短重算间隔（Tick）；每只实体会在最短和最长值之间稳定错峰。")
+                .defineInRange("repathMinTicks", 10, 1, 200);
+        REFACTOR_CALAMITY_REPATH_MAX_TICKS = common.comment("灾厄成功寻路后的最长重算间隔（Tick）；目标突变、受击和卡住会立即解除。")
+                .defineInRange("repathMaxTicks", 20, 1, 400);
+        REFACTOR_CALAMITY_REPATH_TARGET_MOVE_DISTANCE = common.comment("目标相对上次路径请求移动超过此距离时立即允许灾厄重算路径（格）。")
+                .defineInRange("repathTargetMoveDistance", 4.0D, 0.5D, 32.0D);
+        common.pop();
+        common.push("howitzer");
+        REFACTOR_HOWITZER_INCREMENTAL_ORE_SCAN = common.comment("将 Howitzer 每 200 Tick 的约 3.8 万格矿物搜索拆分到多个 Tick，并且只读取已加载区块。")
+                .define("incrementalOreScan", true);
+        REFACTOR_HOWITZER_ORE_POSITIONS_PER_TASK_TICK = common.comment("单个 Howitzer 矿物搜索任务每 Tick 最多检查的方块数。")
+                .defineInRange("orePositionsPerTaskTick", 1024, 16, 65536);
+        REFACTOR_HOWITZER_ORE_POSITIONS_PER_TICK = common.comment("所有 Howitzer 矿物搜索任务每 Tick 共享的方块检查上限。")
+                .defineInRange("orePositionsPerTick", 4096, 64, 262144);
+        REFACTOR_HOWITZER_ORE_TIME_BUDGET_MICROS = common.comment("所有 Howitzer 矿物搜索任务每 Tick 共享的硬耗时预算（微秒）。")
+                .defineInRange("oreTimeBudgetMicros", 500, 50, 50000);
+        REFACTOR_HOWITZER_BURNABLE_FAST_SCAN = common.comment("Howitzer 开火时用无列表分配、仅已加载区块的循环统计目标附近可燃方块。")
+                .define("burnableFastScan", true);
         common.pop();
         common.push("multipart");
         REFACTOR_MULTIPART_MINIMAL_TICK = common.comment("为 HohlMultipart 使用轻量服务端 Tick；保留命中箱、伤害转发、父实体同步和死亡逻辑。")
@@ -375,6 +409,8 @@ public final class PerformanceConfig {
                 .defineInRange("foliageTimeBudgetMicros", 750, 100, 50000);
         REFACTOR_TENDRIL_TIME_BUDGET_MICROS = common.comment("感染卷须重构的全局 Tick耗时预算（微秒）。")
                 .defineInRange("tendrilTimeBudgetMicros", 350, 100, 50000);
+        REFACTOR_FUNGAL_SCHEDULER_TIME_BUDGET_MICROS = common.comment("菌丘侵蚀和卷须搜索合计每 Tick 的硬耗时预算（微秒）；两个队列会轮换优先级。")
+                .defineInRange("schedulerTimeBudgetMicros", 900, 100, 50000);
         common.pop();
         common.pop();
 
@@ -593,6 +629,10 @@ public final class PerformanceConfig {
                 .defineInRange("maxEventsPerSecond", 500, 10, 100000);
         DEBUG_RING_ENTRIES = common.comment("内存中保留的最近调试事件数量，供管理员命令查看。")
                 .defineInRange("ringEntries", 1024, 64, 32768);
+        DEBUG_MAX_FILE_MEGABYTES = common.comment("普通调试 JSONL 单个文件的最大大小（MiB）；超过后自动轮转。")
+                .defineInRange("maxFileMegabytes", 16, 1, 1024);
+        DEBUG_BACKUP_FILES = common.comment("普通调试 JSONL 保留的轮转备份数量。")
+                .defineInRange("backupFiles", 3, 1, 16);
         common.pop();
         common.push("calamityTrace");
         CALAMITY_TRACE_ENABLED = common.comment("启用只记录附近灾厄生物的独立追踪日志；不会混入普通实体调试日志。")
@@ -607,6 +647,10 @@ public final class PerformanceConfig {
                 .defineInRange("maxEventsPerSecond", 240, 10, 100000);
         CALAMITY_TRACE_INCLUDE_COORDINATES = common.comment("在灾厄追踪记录中写入坐标、速度和身体/头部朝向。")
                 .define("includeCoordinates", true);
+        CALAMITY_TRACE_MAX_FILE_MEGABYTES = common.comment("灾厄追踪 JSONL 单个文件的最大大小（MiB）；超过后自动轮转。")
+                .defineInRange("maxFileMegabytes", 32, 1, 1024);
+        CALAMITY_TRACE_BACKUP_FILES = common.comment("灾厄追踪 JSONL 保留的轮转备份数量。")
+                .defineInRange("backupFiles", 3, 1, 16);
         common.pop();
         common.pop();
         COMMON_SPEC = common.build();

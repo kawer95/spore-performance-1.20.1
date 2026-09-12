@@ -13,6 +13,7 @@ import com.arxyt.sporeperformance.compat.MoundStructureBridge;
 import com.arxyt.sporeperformance.compat.TaczDamageBypass;
 import com.arxyt.sporeperformance.config.PerformanceConfig;
 import com.arxyt.sporeperformance.scheduler.FungalWorkScheduler;
+import com.arxyt.sporeperformance.scheduler.HowitzerOreSearchScheduler;
 import com.arxyt.sporeperformance.world.StructureBlockIndex;
 import com.arxyt.sporeperformance.world.RemoteIdleAiController;
 import com.arxyt.sporeperformance.world.InfectionConversionCache;
@@ -54,6 +55,7 @@ public final class SporePerformance {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, PerformanceConfig.COMMON_SPEC);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, PerformanceConfig.CLIENT_SPEC);
         MinecraftForge.EVENT_BUS.register(FungalWorkScheduler.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(HowitzerOreSearchScheduler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(StructureBlockIndex.INSTANCE);
         MinecraftForge.EVENT_BUS.register(DimensionEntityIndex.INSTANCE);
         MinecraftForge.EVENT_BUS.register(SporePopulationLimiter.INSTANCE);
@@ -86,6 +88,7 @@ public final class SporePerformance {
 
     private void onServerStopped(ServerStoppedEvent event) {
         FungalWorkScheduler.INSTANCE.clear();
+        HowitzerOreSearchScheduler.INSTANCE.clear();
         StructureBlockIndex.INSTANCE.clear();
         DimensionEntityIndex.INSTANCE.clear();
         HowitzerLosCache.clear();

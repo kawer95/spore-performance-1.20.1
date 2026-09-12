@@ -70,7 +70,9 @@ public final class SporePerformanceCommands {
                         .then(Commands.literal("status").executes(context -> {
                             context.getSource().sendSuccess(() -> Component.literal("Debug enabled=" + PerformanceConfig.DEBUG_ENABLED.get()
                                     + ", file=" + DebugTrace.file() + ", watched=" + DebugTrace.watched()
-                                    + ", dropped=" + DebugTrace.dropped()), false);
+                                    + ", dropped=" + DebugTrace.dropped()
+                                    + ", maxMiB=" + PerformanceConfig.DEBUG_MAX_FILE_MEGABYTES.get()
+                                    + ", backups=" + PerformanceConfig.DEBUG_BACKUP_FILES.get()), false);
                             return 1;
                         }))
                         .then(Commands.literal("recent")

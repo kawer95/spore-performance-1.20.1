@@ -16,11 +16,8 @@ import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraftforge.fml.loading.FMLPaths;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -92,7 +89,9 @@ public final class CalamityTrace {
     public List<String> statusLines() {
         List<String> result = new ArrayList<>();
         result.add("Calamity trace: enabled=" + PerformanceConfig.CALAMITY_TRACE_ENABLED.get()
-                + ", file=" + file() + ", queued=" + queue.size() + ", dropped=" + dropped.get());
+                + ", file=" + file() + ", queued=" + queue.size() + ", dropped=" + dropped.get()
+                + ", maxMiB=" + PerformanceConfig.CALAMITY_TRACE_MAX_FILE_MEGABYTES.get()
+                + ", backups=" + PerformanceConfig.CALAMITY_TRACE_BACKUP_FILES.get());
         result.add("Calamity trace: tracked=" + activeStates() + "/" + PerformanceConfig.CALAMITY_TRACE_MAX_TRACKED.get()
                 + ", radius=" + PerformanceConfig.CALAMITY_TRACE_RADIUS.get()
                 + ", sampleTicks=" + PerformanceConfig.CALAMITY_TRACE_SAMPLE_INTERVAL.get());
@@ -256,8 +255,10 @@ public final class CalamityTrace {
         java.nio.file.Path output = file();
         try {
             Files.createDirectories(output.getParent());
-            try (BufferedWriter stream = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE)) {
+            long maxBytes = Math.max(1L, PerformanceConfig.CALAMITY_TRACE_MAX_FILE_MEGABYTES.get().longValue())
+                    * 1024L * 1024L;
+            try (RotatingTraceWriter stream = new RotatingTraceWriter(output, maxBytes,
+                    PerformanceConfig.CALAMITY_TRACE_BACKUP_FILES.get())) {
                 while (!closed || !queue.isEmpty()) {
                     String line = queue.poll();
                     if (line == null) {
@@ -265,8 +266,8 @@ public final class CalamityTrace {
                         catch (InterruptedException ignored) { /* Recheck close state. */ }
                         continue;
                     }
-                    stream.write(line);
-                    stream.newLine();
+                    stream.writeLine(line);
+                    if (queue.isEmpty()) stream.flush();
                 }
             }
         } catch (IOException exception) {

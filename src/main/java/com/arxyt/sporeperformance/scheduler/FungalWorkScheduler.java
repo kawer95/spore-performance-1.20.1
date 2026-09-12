@@ -45,11 +45,12 @@ import java.util.UUID;
 public final class FungalWorkScheduler {
     public static final FungalWorkScheduler INSTANCE = new FungalWorkScheduler();
     private static final int RETRY_TICKS = 100;
-    private static final int TIME_CHECK_STRIDE = 64;
+    private static final int TIME_CHECK_STRIDE = 16;
     private final ArrayDeque<WorkJob> tendrilJobs = new ArrayDeque<>();
     private final ArrayDeque<WorkJob> foliageJobs = new ArrayDeque<>();
     private final Set<JobKey> queued = new HashSet<>();
     private final Map<JobKey, DeferredRequest> deferred = new HashMap<>();
+    private boolean foliageFirst;
 
     public synchronized boolean queueTendril(Mound mound) {
         if (!tendrilSchedulingEnabled()) return false;
@@ -89,9 +90,24 @@ public final class FungalWorkScheduler {
         }
         if (!tendrilEnabled) clearKind(JobKind.TENDRIL);
         if (!foliageEnabled) clearKind(JobKind.FOLIAGE);
-        for (ServerLevel level : event.getServer().getAllLevels()) drainDeferred(level);
-        drain(event.getServer(), tendrilJobs, PerformanceConfig.AGGRESSIVE_TENDRIL_GLOBAL.get(), JobKind.TENDRIL);
-        drain(event.getServer(), foliageJobs, PerformanceConfig.AGGRESSIVE_FOLIAGE_GLOBAL.get(), JobKind.FOLIAGE);
+        long started = System.nanoTime();
+        long sharedDeadline = started + PerformanceConfig.REFACTOR_FUNGAL_SCHEDULER_TIME_BUDGET_MICROS.get() * 1_000L;
+        for (ServerLevel level : event.getServer().getAllLevels()) {
+            if (deadlineReached(sharedDeadline)) break;
+            drainDeferred(level, sharedDeadline);
+        }
+        if (foliageFirst) {
+            drain(event.getServer(), foliageJobs, PerformanceConfig.AGGRESSIVE_FOLIAGE_GLOBAL.get(), JobKind.FOLIAGE, sharedDeadline);
+            drain(event.getServer(), tendrilJobs, PerformanceConfig.AGGRESSIVE_TENDRIL_GLOBAL.get(), JobKind.TENDRIL, sharedDeadline);
+        } else {
+            drain(event.getServer(), tendrilJobs, PerformanceConfig.AGGRESSIVE_TENDRIL_GLOBAL.get(), JobKind.TENDRIL, sharedDeadline);
+            drain(event.getServer(), foliageJobs, PerformanceConfig.AGGRESSIVE_FOLIAGE_GLOBAL.get(), JobKind.FOLIAGE, sharedDeadline);
+        }
+        foliageFirst = !foliageFirst;
+        PerformanceMetrics.add("fungal.scheduler.nanos", System.nanoTime() - started);
+        if (deadlineReached(sharedDeadline) && (!tendrilJobs.isEmpty() || !foliageJobs.isEmpty())) {
+            PerformanceMetrics.increment("fungal.scheduler.shared_time_budget_hit");
+        }
     }
 
     private static boolean refactorSchedulingEnabled() {
@@ -107,10 +123,12 @@ public final class FungalWorkScheduler {
         return PerformanceConfig.AGGRESSIVE_FOLIAGE.get() || refactorSchedulingEnabled();
     }
 
-    private synchronized void drainDeferred(ServerLevel level) {
+    private synchronized void drainDeferred(ServerLevel level, long deadline) {
         long now = level.getGameTime();
         var iterator = deferred.entrySet().iterator();
+        int checked = 0;
         while (iterator.hasNext()) {
+            if ((checked++ & (TIME_CHECK_STRIDE - 1)) == 0 && deadlineReached(deadline)) break;
             var entry = iterator.next();
             JobKey key = entry.getKey();
             DeferredRequest request = entry.getValue();
@@ -127,7 +145,8 @@ public final class FungalWorkScheduler {
         }
     }
 
-    private synchronized void drain(net.minecraft.server.MinecraftServer server, ArrayDeque<WorkJob> jobs, int globalBudget, JobKind kind) {
+    private synchronized void drain(net.minecraft.server.MinecraftServer server, ArrayDeque<WorkJob> jobs, int globalBudget,
+                                    JobKind kind, long sharedDeadline) {
         int remaining = globalBudget;
         int turns = jobs.size();
         boolean timed = PerformanceConfig.REFACTOR_AI_ENABLED.get()
@@ -141,7 +160,8 @@ public final class FungalWorkScheduler {
                 ? PerformanceConfig.REFACTOR_FOLIAGE_TIME_BUDGET_MICROS.get()
                 : PerformanceConfig.REFACTOR_TENDRIL_TIME_BUDGET_MICROS.get();
         int micros = Math.min(configuredMicros, refactorMicros);
-        long deadline = timed ? System.nanoTime() + micros * 1_000L : Long.MAX_VALUE;
+        long localDeadline = timed ? System.nanoTime() + micros * 1_000L : Long.MAX_VALUE;
+        long deadline = Math.min(localDeadline, sharedDeadline);
         while (remaining > 0 && turns-- > 0 && !jobs.isEmpty()) {
             if (deadlineReached(deadline)) break;
             WorkJob job = jobs.removeFirst();
@@ -178,6 +198,7 @@ public final class FungalWorkScheduler {
         foliageJobs.clear();
         queued.clear();
         deferred.clear();
+        foliageFirst = false;
     }
 
     private void clearKind(JobKind kind) {

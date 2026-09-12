@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,20 +30,45 @@ abstract class CalamityPathNavigationMixin {
     private static final Map<PathNavigation, CalamityPathBackoff> BACKOFFS = new WeakHashMap<>();
 
     @Shadow @Final protected Calamity calamity;
+    @Unique private boolean sporeperformance$internalEntityPathRequest;
+    @Unique private boolean sporeperformance$externalEntityPathAttempt;
+    @Unique private boolean sporeperformance$suppressedExternalEntityPath;
 
     @Inject(method = "m_6570_", at = @At("HEAD"), cancellable = true)
     private void sporeperformance$sharedCalamityPath(Entity target, int reach, CallbackInfoReturnable<Path> callback) {
         if (!com.arxyt.sporeperformance.ai.CalamityNavigationRuntime.enabled(calamity)
                 || !(calamity.level() instanceof ServerLevel level)) return;
-        Path cached = FungalAiRuntime.INSTANCE.get(level).paths.cachedNativePath(calamity, target);
+        var runtime = FungalAiRuntime.INSTANCE.get(level);
+        sporeperformance$externalEntityPathAttempt = false;
+        sporeperformance$suppressedExternalEntityPath = false;
+        if (!sporeperformance$internalEntityPathRequest) {
+            PathNavigation navigation = (PathNavigation) (Object) this;
+            if (runtime.calamities.suppressEntityPathRequest(calamity, target, navigation)) {
+                sporeperformance$suppressedExternalEntityPath = true;
+                callback.setReturnValue(navigation.getPath());
+                return;
+            }
+            runtime.calamities.beginEntityPathRequest(calamity, target);
+            sporeperformance$externalEntityPathAttempt = true;
+        }
+        Path cached = runtime.paths.cachedNativePath(calamity, target);
         if (cached != null) callback.setReturnValue(cached);
     }
 
     @Inject(method = "m_6570_", at = @At("RETURN"))
     private void sporeperformance$recordCalamityPath(Entity target, int reach, CallbackInfoReturnable<Path> callback) {
-        if (com.arxyt.sporeperformance.ai.CalamityNavigationRuntime.enabled(calamity)
-                && calamity.level() instanceof ServerLevel level)
-            FungalAiRuntime.INSTANCE.get(level).paths.recordNativePath(calamity, target, callback.getReturnValue());
+        if (!com.arxyt.sporeperformance.ai.CalamityNavigationRuntime.enabled(calamity)
+                || !(calamity.level() instanceof ServerLevel level)) return;
+        var runtime = FungalAiRuntime.INSTANCE.get(level);
+        if (sporeperformance$suppressedExternalEntityPath) {
+            sporeperformance$suppressedExternalEntityPath = false;
+            return;
+        }
+        runtime.paths.recordNativePath(calamity, target, callback.getReturnValue());
+        if (sporeperformance$externalEntityPathAttempt) {
+            runtime.calamities.completeEntityPathRequest(calamity, target, callback.getReturnValue());
+            sporeperformance$externalEntityPathAttempt = false;
+        }
     }
 
     @Inject(method = "m_7864_", at = @At("HEAD"), cancellable = true)
@@ -81,8 +107,19 @@ abstract class CalamityPathNavigationMixin {
                 callback.setReturnValue(true);
                 return;
             }
+            if (runtime.calamities.suppressEntityPathRequest(calamity, target, navigation)) {
+                callback.setReturnValue(true);
+                return;
+            }
             runtime.calamities.submitEntityIntent(calamity, target, speed);
-            Path path = navigation.createPath(target, 0);
+            runtime.calamities.beginEntityPathRequest(calamity, target);
+            Path path;
+            sporeperformance$internalEntityPathRequest = true;
+            try {
+                path = navigation.createPath(target, 0);
+            } finally {
+                sporeperformance$internalEntityPathRequest = false;
+            }
             if (path == null) {
                 // Preserve Spore's direct-approach result.  createPath has already stored the
                 // private fallback position used by CalamityPathNavigation.tick().

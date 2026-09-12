@@ -82,9 +82,13 @@ public final class CalamityNavigationRuntime {
                 && !materialBackoffTargetChange(state, observed, calamity)) {
             targetChanged = false;
         }
-        boolean hit = calamity.hurtTime > 0;
+        // hurtTime remains positive for several ticks.  Treat only a rising value as a new hit,
+        // otherwise every damage-invulnerability tick would defeat the 10-20 tick path lease.
+        boolean hit = calamity.hurtTime > state.lastObservedHurtTime;
+        state.lastObservedHurtTime = calamity.hurtTime;
         if (targetChanged || hit) {
             clearBackoff(state, calamity, targetChanged ? "target_changed" : "hurt");
+            invalidateEntityPathRequest(state);
             state.recoveryStage = 0;
             state.intent = observed.intentName();
             state.holdNavigationYaw = false;
@@ -164,6 +168,7 @@ public final class CalamityNavigationRuntime {
             state.recoveryStage = 0;
             state.holdNavigationYaw = false;
             state.accumulatedUnproductiveTurn = 0.0F;
+            if (livingTarget == null) invalidateEntityPathRequest(state);
         } else if (nodeAdvanced || routeDistanceImproved) {
             state.lastProgressTick = now;
             if (nodeAdvanced) {
@@ -238,6 +243,106 @@ public final class CalamityNavigationRuntime {
     }
 
     /**
+     * Returns true when a Goal's entity-target movement request is already satisfied by the
+     * current route or by a recent failed/direct attempt.  This runs before createPath, so a
+     * cache hit no longer allocates and installs a fresh Path every Tick.
+     */
+    public boolean suppressEntityPathRequest(Calamity calamity, Entity target, PathNavigation navigation) {
+        if (!enabled(calamity) || !PerformanceConfig.REFACTOR_CALAMITY_PATH_REQUEST_REUSE.get()) return false;
+        State state = states.computeIfAbsent(calamity.getUUID(), ignored -> State.initial(calamity, level.getGameTime()));
+        long now = level.getGameTime();
+        boolean sameTarget = target.getUUID().equals(state.pathRequestTargetId);
+        double movementSqr = sameTarget && state.pathRequestTargetPosition != null
+                ? state.pathRequestTargetPosition.distanceToSqr(target.position()) : Double.POSITIVE_INFINITY;
+        double threshold = PerformanceConfig.REFACTOR_CALAMITY_REPATH_TARGET_MOVE_DISTANCE.get();
+        Path current = navigation.getPath();
+        boolean activePath = current != null && !current.isDone();
+        boolean directApproach = state.hasDirectApproach(target instanceof LivingEntity living ? living : null, now);
+        boolean newDamage = calamity.hurtTime > state.pathRequestHurtTime;
+        boolean recovery = state.recoveryStage > 0 || state.holdNavigationYaw;
+        boolean invalidTarget = target.isRemoved() || target instanceof LivingEntity living && !living.isAlive();
+
+        CalamityRepathPolicy.Decision decision = CalamityRepathPolicy.decide(new CalamityRepathPolicy.Input(
+                now, state.lastEntityPathAttemptTick, state.nextEntityPathAttemptTick, sameTarget,
+                movementSqr, threshold * threshold, activePath, directApproach,
+                state.lastEntityPathFailed, newDamage || recovery || invalidTarget));
+        if (decision == CalamityRepathPolicy.Decision.ALLOW) {
+            if (!sameTarget || movementSqr > threshold * threshold) {
+                counters(calamity).targetInvalidations++;
+                PerformanceMetrics.increment("ai_refactor.calamity.path_target_invalidated");
+            }
+            if (recovery) {
+                counters(calamity).stuckInvalidations++;
+                PerformanceMetrics.increment("ai_refactor.calamity.path_stuck_invalidated");
+            }
+            return false;
+        }
+
+        Counters count = counters(calamity);
+        switch (decision) {
+            case SUPPRESS_SAME_TICK -> {
+                count.sameTickRequestsSuppressed++;
+                PerformanceMetrics.increment("ai_refactor.calamity.path_same_tick_suppressed");
+            }
+            case REUSE_ACTIVE_PATH -> {
+                count.pathReused++;
+                PerformanceMetrics.increment("ai_refactor.calamity.path_reused");
+            }
+            case REUSE_DIRECT_APPROACH -> {
+                count.directApproachReused++;
+                PerformanceMetrics.increment("ai_refactor.calamity.direct_approach_reused");
+            }
+            case SUPPRESS_FAILED_RETRY -> {
+                count.failedRetrySuppressed++;
+                PerformanceMetrics.increment("ai_refactor.calamity.failed_path_retry_suppressed");
+            }
+            default -> { }
+        }
+        CalamityTrace.INSTANCE.navigationRuntime(calamity, "path_request_suppressed",
+                "reason=" + decision + ",target=" + target.getUUID() + ",next=" + state.nextEntityPathAttemptTick
+                        + ",activePath=" + activePath);
+        return true;
+    }
+
+    /** Marks the one request which is allowed to enter PathNavigation.createPath this Tick. */
+    public void beginEntityPathRequest(Calamity calamity, Entity target) {
+        if (!enabled(calamity) || !PerformanceConfig.REFACTOR_CALAMITY_PATH_REQUEST_REUSE.get()) return;
+        State state = states.computeIfAbsent(calamity.getUUID(), ignored -> State.initial(calamity, level.getGameTime()));
+        long now = level.getGameTime();
+        int interval = CalamityRepathPolicy.jitteredInterval(calamity.getUUID(),
+                PerformanceConfig.REFACTOR_CALAMITY_REPATH_MIN_TICKS.get(),
+                PerformanceConfig.REFACTOR_CALAMITY_REPATH_MAX_TICKS.get());
+        state.pathRequestTargetId = target.getUUID();
+        state.pathRequestTargetPosition = target.position();
+        state.lastEntityPathAttemptTick = now;
+        state.nextEntityPathAttemptTick = now + interval;
+        state.pathRequestHurtTime = calamity.hurtTime;
+        state.lastEntityPathFailed = false;
+        counters(calamity).pathAttempts++;
+        PerformanceMetrics.increment("ai_refactor.calamity.path_attempted");
+        CalamityTrace.INSTANCE.navigationRuntime(calamity, "path_request_started",
+                "target=" + target.getUUID() + ",refresh=" + interval);
+    }
+
+    /** Records the actual A* result without interpreting a cache/reuse suppression as a new path. */
+    public void completeEntityPathRequest(Calamity calamity, Entity target, @Nullable Path path) {
+        if (!enabled(calamity) || !PerformanceConfig.REFACTOR_CALAMITY_PATH_REQUEST_REUSE.get()) return;
+        State state = states.computeIfAbsent(calamity.getUUID(), ignored -> State.initial(calamity, level.getGameTime()));
+        state.pathRequestTargetId = target.getUUID();
+        state.pathRequestTargetPosition = target.position();
+        state.pathRequestHurtTime = calamity.hurtTime;
+        state.lastEntityPathFailed = path == null;
+        Counters count = counters(calamity);
+        if (path == null) {
+            count.pathFailures++;
+            PerformanceMetrics.increment("ai_refactor.calamity.path_failed");
+        } else {
+            count.pathSuccesses++;
+            PerformanceMetrics.increment("ai_refactor.calamity.path_succeeded");
+        }
+    }
+
+    /**
      * Retains the native direct-approach contract when an entity path cannot be built.  The
      * old navigation returns true in this case and keeps its private fallback target; reporting
      * false here made goals retry out of phase while that fallback was still steering the mob.
@@ -248,6 +353,7 @@ public final class CalamityNavigationRuntime {
         state.requestedSpeed = speed;
         state.requestedTargetId = target.getUUID();
         state.requestedPosition = target.position();
+        completeEntityPathRequest(calamity, target, path);
         if (path != null) {
             state.directUntil = 0L;
             state.directTargetId = null;
@@ -430,7 +536,11 @@ public final class CalamityNavigationRuntime {
                         .append(",backoff=").append(count.backoff).append(",lowMoveHighTurn=")
                         .append(count.lowMovementHighTurn).append(",circular=").append(count.circularRoutes)
                         .append(",yawSuppressed=").append(count.suppressedCircularYaw)
-                        .append(",arrivedNodes=").append(count.arrivedNodesSkipped).append(']');
+                        .append(",arrivedNodes=").append(count.arrivedNodesSkipped)
+                        .append(",pathAttempts=").append(count.pathAttempts)
+                        .append(",pathReuse=").append(count.pathReused)
+                        .append(",sameTickSuppressed=").append(count.sameTickRequestsSuppressed)
+                        .append(",pathFailures=").append(count.pathFailures).append(']');
                 first = false;
             }
         }
@@ -454,6 +564,7 @@ public final class CalamityNavigationRuntime {
 
         if (state.recoveryStage == 0) {
             state.recoveryStage = 1;
+            invalidateEntityPathRequest(state);
             navigation.recomputePath();
             ++count.recompute;
             PerformanceMetrics.increment("ai_refactor.calamity.recompute");
@@ -463,6 +574,7 @@ public final class CalamityNavigationRuntime {
 
         if (state.recoveryStage == 1) {
             state.recoveryStage = 2;
+            invalidateEntityPathRequest(state);
             BlockPos desired = livingTarget != null ? dynamicSideStep(calamity, livingTarget)
                     : staticWaypoint(calamity, search != null ? search : navTarget);
             if (desired != null) {
@@ -571,6 +683,15 @@ public final class CalamityNavigationRuntime {
         state.heldYaw = 0.0F;
     }
 
+    private Counters counters(Calamity calamity) {
+        return counters.computeIfAbsent(calamity.getType().toString(), ignored -> new Counters());
+    }
+
+    private static void invalidateEntityPathRequest(State state) {
+        state.nextEntityPathAttemptTick = 0L;
+        state.lastEntityPathFailed = false;
+    }
+
     @Nullable
     private static BlockPos normalizedSearch(@Nullable BlockPos value) {
         return value == null || value.equals(BlockPos.ZERO) ? null : value.immutable();
@@ -656,6 +777,13 @@ public final class CalamityNavigationRuntime {
         private String yawOwner = "initial";
         private double requestedSpeed = 1.0D;
         private String intent = "initial";
+        private UUID pathRequestTargetId;
+        private Vec3 pathRequestTargetPosition;
+        private long lastEntityPathAttemptTick = Long.MIN_VALUE;
+        private long nextEntityPathAttemptTick;
+        private int pathRequestHurtTime;
+        private boolean lastEntityPathFailed;
+        private int lastObservedHurtTime;
 
         static State initial(Calamity calamity, long now) {
             State result = new State();
@@ -715,5 +843,14 @@ public final class CalamityNavigationRuntime {
         private long circularRoutes;
         private long suppressedCircularYaw;
         private long arrivedNodesSkipped;
+        private long pathAttempts;
+        private long pathSuccesses;
+        private long pathFailures;
+        private long pathReused;
+        private long directApproachReused;
+        private long failedRetrySuppressed;
+        private long sameTickRequestsSuppressed;
+        private long targetInvalidations;
+        private long stuckInvalidations;
     }
 }
