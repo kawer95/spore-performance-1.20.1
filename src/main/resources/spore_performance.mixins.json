@@ -34,6 +34,7 @@
     "MobRemoteIdleAiMixin",
     "LocalTargettingGoalMixin",
     "ItemEntityMixin",
+    "FallingBlockEntityMixin",
     "BileProjectileLifetimeMixin",
     "NearestAttackableTargetGoalMixin",
     "PathNavigationMixin",

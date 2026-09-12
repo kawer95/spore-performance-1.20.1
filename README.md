@@ -64,6 +64,8 @@ Spore `2.2.0j` 的 Forge 1.20.1 性能附属，modId 为 `spore_performance`。�
 
 `[limits.calamity]` 独立控制灾厄：`maxTotal` 是单个维度内所有灾厄总数，`maxPerType` 是同一种灾厄上限；两项默认均为 `-1`（不限制）。这两个上限拦截自然生成、sporesrp 支援/技能、结构召唤和命令/刷怪蛋等新的实体加入；旧存档实体仍可加载并计入后续容量。
 
+`[limits.fallingBlocks]` 管理会放大实体碰撞和投射物候选查询的地形块实体。`FallingBlockEntity` 默认限制为每维度 `512`、每区块 `96`、每来源 `256`，并在 `200` Tick后清理；启动新版时旧存档中已经积压的 FallingBlock 也会在首次 Tick 纳入配额，超额部分立即回收。Stahl 的 `spore_performance:stahl_rising_block` 独立限制为每维度 `256`、每区块 `64`、最长 `60` Tick。`/sporeperformance status` 显示来源归因（Foliage、Hohlfresser、投掷方块、尸体、灾厄或其他）、区块数和拒绝数。
+
 ## 默认安全优化
 
 `[safe]` 的所有开关默认 `true`，设计为不改变 Spore 的正常行为时序：

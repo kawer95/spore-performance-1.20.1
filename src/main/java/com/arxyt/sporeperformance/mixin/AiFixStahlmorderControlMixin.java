@@ -6,6 +6,7 @@ import com.arxyt.sporeperformance.ai.StahlAiControl;
 import com.arxyt.sporeperformance.config.PerformanceConfig;
 import com.arxyt.sporeperformance.diagnostics.DebugTrace;
 import com.arxyt.sporeperformance.world.StahlRisingBlockEntity;
+import com.arxyt.sporeperformance.world.TransientBlockEntityRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -248,6 +249,7 @@ abstract class AiFixStahlmorderControlMixin implements StahlAiControl {
                         0.38D, 0.92D);
                 Vec3 velocity = new Vec3(dx / outward * 0.12D, bounce, dz / outward * 0.12D);
                 int life = 22 + level.random.nextInt(14) + Mth.floor(distance * 2.0D);
+                if (!TransientBlockEntityRuntime.INSTANCE.allowRising(level, pos)) continue;
                 level.addFreshEntity(new StahlRisingBlockEntity(level, x + 0.5D, y + 1.0D, z + 0.5D,
                         state, life, velocity));
                 spawned++;

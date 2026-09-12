@@ -6,6 +6,7 @@ import com.arxyt.sporeperformance.diagnostics.PerformanceMetrics;
 import com.arxyt.sporeperformance.world.SporePopulationLimiter;
 import com.arxyt.sporeperformance.world.ItemMergeCoordinator;
 import com.arxyt.sporeperformance.world.FungalWorkBudget;
+import com.arxyt.sporeperformance.world.TransientBlockEntityRuntime;
 import com.arxyt.sporeperformance.ai.FungalAiRuntime;
 import com.arxyt.sporeperformance.diagnostics.DebugTrace;
 import com.arxyt.sporeperformance.diagnostics.CalamityTrace;
@@ -34,6 +35,7 @@ public final class SporePerformanceCommands {
                     SporePopulationLimiter.INSTANCE.statusLines().forEach(line -> context.getSource().sendSuccess(() -> Component.literal(line), false));
                     ItemMergeCoordinator.INSTANCE.statusLines().forEach(line -> context.getSource().sendSuccess(() -> Component.literal(line), false));
                     FungalWorkBudget.INSTANCE.statusLines().forEach(line -> context.getSource().sendSuccess(() -> Component.literal(line), false));
+                    TransientBlockEntityRuntime.INSTANCE.statusLines().forEach(line -> context.getSource().sendSuccess(() -> Component.literal(line), false));
                     FungalAiRuntime.INSTANCE.statusLines().forEach(line -> context.getSource().sendSuccess(() -> Component.literal(line), false));
                     return 1;
                 }))

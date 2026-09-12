@@ -1,6 +1,7 @@
 package com.arxyt.sporeperformance.world;
 
 import com.arxyt.sporeperformance.registry.PerformanceEntities;
+import com.arxyt.sporeperformance.config.PerformanceConfig;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -47,7 +48,8 @@ public final class StahlRisingBlockEntity extends Entity {
 
     @Override public void tick() {
         super.tick();
-        if (tickCount > life) { discard(); return; }
+        if (tickCount > Math.min(life, PerformanceConfig.LIMIT_RISING_BLOCKS_TTL_TICKS.get())
+                || TransientBlockEntityRuntime.INSTANCE.shouldExpireRising(this)) { discard(); return; }
         Vec3 velocity = getDeltaMovement();
         setPos(getX() + velocity.x, getY() + velocity.y, getZ() + velocity.z);
         setDeltaMovement(velocity.x * 0.96D, (velocity.y - 0.075D) * 0.96D, velocity.z * 0.96D);

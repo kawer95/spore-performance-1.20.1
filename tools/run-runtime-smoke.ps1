@@ -157,6 +157,9 @@ summon spore:vigil 68 80 0
 summon spore:tumoroid_nuke 72 80 0
 summon item 48 80 0 {Item:{id:"spore:biomass",Count:32b}}
 summon item 49 80 0 {Item:{id:"spore:biomass",Count:32b}}
+summon falling_block 50 84 0 {BlockState:{Name:"minecraft:sand"},Time:0}
+setblock 51 90 0 minecraft:sand
+setblock 51 89 0 minecraft:air
 setblock 40 80 0 spore:overgrown_spawner
 setblock 42 80 0 spore:incubator
 setblock 44 80 2 spore:cdu

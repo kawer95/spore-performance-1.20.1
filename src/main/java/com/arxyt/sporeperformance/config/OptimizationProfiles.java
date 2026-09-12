@@ -94,7 +94,9 @@ public final class OptimizationProfiles {
             PerformanceConfig.SAFE_SPORESRP_DISABLED_SHORT_CIRCUIT,
             PerformanceConfig.SAFE_SONA_CAN_CHUNK_CACHE,
             PerformanceConfig.SAFE_SPORE_PROJECTILE_BROADPHASE,
-            PerformanceConfig.SAFE_PERSIST_BILE_PROJECTILE_LIFETIME);
+            PerformanceConfig.SAFE_PERSIST_BILE_PROJECTILE_LIFETIME,
+            PerformanceConfig.LIMIT_FALLING_BLOCKS_ENABLED,
+            PerformanceConfig.LIMIT_RISING_BLOCKS_ENABLED);
 
     /* All common AI/navigation/foliage refactor switches. */
     private static final List<ForgeConfigSpec.BooleanValue> COMMON_REFACTOR = List.of(

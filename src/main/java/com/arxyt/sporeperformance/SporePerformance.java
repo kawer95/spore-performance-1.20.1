@@ -25,6 +25,7 @@ import com.arxyt.sporeperformance.world.LivingEntitySpatialIndex;
 import com.arxyt.sporeperformance.world.FungalWorkBudget;
 import com.arxyt.sporeperformance.world.TargetAcquisitionController;
 import com.arxyt.sporeperformance.world.InfectedSelectorScheduler;
+import com.arxyt.sporeperformance.world.TransientBlockEntityRuntime;
 import com.arxyt.sporeperformance.runtime.GeneralPathBackoff;
 import com.arxyt.sporeperformance.world.ProjectileBroadphaseCache;
 import com.arxyt.sporeperformance.ai.FungalAiRuntime;
@@ -40,6 +41,7 @@ import com.arxyt.sporeperformance.diagnostics.DebugTrace;
 import com.arxyt.sporeperformance.diagnostics.CalamityTrace;
 import com.arxyt.sporeperformance.diagnostics.LoadedEntityCensus;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraft.world.entity.item.FallingBlockEntity;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
@@ -64,6 +66,7 @@ public final class SporePerformance {
         MinecraftForge.EVENT_BUS.register(LoadedEntityCensus.INSTANCE);
         MinecraftForge.EVENT_BUS.register(FungalAiRuntime.INSTANCE);
         MinecraftForge.EVENT_BUS.register(FungalWorkBudget.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(TransientBlockEntityRuntime.INSTANCE);
         // This service has a direct optional sporesrp helper reference.  Do not construct it
         // on installations that intentionally run Spore without sporesrp.
         if (ModList.get().isLoaded("sporesrp")) MinecraftForge.EVENT_BUS.register(SporeSrpBackgroundScheduler.INSTANCE);
@@ -80,6 +83,10 @@ public final class SporePerformance {
         OptionalCompatProbe.refresh();
         TaczDamageBypass.refresh();
         MoundStructureBridge.initialize();
+        // Force the vanilla target to transform after Mixin configuration has been registered.
+        // The limiter is otherwise first loaded only during a rare block fall, which makes a
+        // signature problem surface in combat rather than at controlled server startup.
+        FallingBlockEntity.class.getName();
         SporePerformanceCommands.register(event.getServer().getCommands().getDispatcher());
         LOGGER.info("Spore Performance compatibility: {}", OptionalCompatProbe.summary());
         if (DebugTrace.enabled(DebugTrace.Category.COMPAT))
@@ -108,6 +115,7 @@ public final class SporePerformance {
         FungalWorkBudget.INSTANCE.clear();
         TargetAcquisitionController.clear();
         InfectedSelectorScheduler.clear();
+        TransientBlockEntityRuntime.INSTANCE.clear();
         GeneralPathBackoff.clear();
         ProjectileBroadphaseCache.clear();
         SonaCanChunkTickCache.clear();

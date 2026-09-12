@@ -189,6 +189,26 @@ maxTotal = -1
 # 单个维度内同一种灾厄实体上限；-1 表示不限制；存档已有灾厄仍允许加载。
 maxPerType = -1
 
+[limits.fallingBlocks]
+# 限制 FallingBlockEntity 的生成、同区块密度和寿命，防止真菌地形转换积压数千实体。
+enabled = true
+# 单个维度允许同时存在的 FallingBlockEntity 总数硬上限。
+maxGlobal = 512
+# 单个区块允许同时存在的 FallingBlockEntity 硬上限。
+maxPerChunk = 96
+# 同一来源（菌丘转换、灾厄、投射物等）允许同时存在的 FallingBlockEntity 硬上限。
+maxPerSource = 256
+# 附属运行时追踪的 FallingBlockEntity 最大寿命（Tick）；到期后直接清理而不落地方块。
+ttlTicks = 200
+# 限制 Stahl 落地特效的 rising block 实体数量和寿命。
+risingEnabled = true
+# 单个维度允许同时存在的 Stahl rising block 实体总数硬上限。
+risingMaxGlobal = 256
+# 单个区块允许同时存在的 Stahl rising block 实体硬上限。
+risingMaxPerChunk = 64
+# Stahl rising block 实体的最大寿命（Tick）；不延长原有特效寿命。
+risingTtlTicks = 60
+
 [limits.working]
 # 同时执行完整 AI 的 Spore 生物单位数；超额旧实体保留并休眠。
 maxActiveFungalUnitsPerDimension = 200

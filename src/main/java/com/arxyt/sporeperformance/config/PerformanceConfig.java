@@ -89,6 +89,15 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.IntValue LIMIT_TENDRILS_PER_DIMENSION;
     public static final ForgeConfigSpec.IntValue LIMIT_CALAMITY_TOTAL_PER_DIMENSION;
     public static final ForgeConfigSpec.IntValue LIMIT_CALAMITY_PER_TYPE_PER_DIMENSION;
+    public static final ForgeConfigSpec.BooleanValue LIMIT_FALLING_BLOCKS_ENABLED;
+    public static final ForgeConfigSpec.IntValue LIMIT_FALLING_BLOCKS_GLOBAL;
+    public static final ForgeConfigSpec.IntValue LIMIT_FALLING_BLOCKS_PER_CHUNK;
+    public static final ForgeConfigSpec.IntValue LIMIT_FALLING_BLOCKS_PER_SOURCE;
+    public static final ForgeConfigSpec.IntValue LIMIT_FALLING_BLOCKS_TTL_TICKS;
+    public static final ForgeConfigSpec.BooleanValue LIMIT_RISING_BLOCKS_ENABLED;
+    public static final ForgeConfigSpec.IntValue LIMIT_RISING_BLOCKS_GLOBAL;
+    public static final ForgeConfigSpec.IntValue LIMIT_RISING_BLOCKS_PER_CHUNK;
+    public static final ForgeConfigSpec.IntValue LIMIT_RISING_BLOCKS_TTL_TICKS;
 
     public static final ForgeConfigSpec.BooleanValue ITEM_MERGE_ENABLED;
     public static final ForgeConfigSpec.BooleanValue ITEM_MERGE_GLOBAL;
@@ -438,6 +447,26 @@ public final class PerformanceConfig {
                 .defineInRange("maxTotal", -1, -1, 100000);
         LIMIT_CALAMITY_PER_TYPE_PER_DIMENSION = common.comment("单个维度内同一种灾厄实体上限；-1 表示不限制；存档已有灾厄仍允许加载。")
                 .defineInRange("maxPerType", -1, -1, 100000);
+        common.pop();
+        common.push("fallingBlocks");
+        LIMIT_FALLING_BLOCKS_ENABLED = common.comment("限制 FallingBlockEntity 的生成、同区块密度和寿命，防止真菌地形转换积压数千实体。")
+                .define("enabled", true);
+        LIMIT_FALLING_BLOCKS_GLOBAL = common.comment("单个维度允许同时存在的 FallingBlockEntity 总数硬上限。")
+                .defineInRange("maxGlobal", 512, 16, 100000);
+        LIMIT_FALLING_BLOCKS_PER_CHUNK = common.comment("单个区块允许同时存在的 FallingBlockEntity 硬上限。")
+                .defineInRange("maxPerChunk", 96, 4, 10000);
+        LIMIT_FALLING_BLOCKS_PER_SOURCE = common.comment("同一来源（菌丘转换、灾厄、投射物等）允许同时存在的 FallingBlockEntity 硬上限。")
+                .defineInRange("maxPerSource", 256, 4, 100000);
+        LIMIT_FALLING_BLOCKS_TTL_TICKS = common.comment("附属运行时追踪的 FallingBlockEntity 最大寿命（Tick）；到期后直接清理而不落地方块。")
+                .defineInRange("ttlTicks", 200, 20, 12000);
+        LIMIT_RISING_BLOCKS_ENABLED = common.comment("限制 Stahl 落地特效的 rising block 实体数量和寿命。")
+                .define("risingEnabled", true);
+        LIMIT_RISING_BLOCKS_GLOBAL = common.comment("单个维度允许同时存在的 Stahl rising block 实体总数硬上限。")
+                .defineInRange("risingMaxGlobal", 256, 16, 100000);
+        LIMIT_RISING_BLOCKS_PER_CHUNK = common.comment("单个区块允许同时存在的 Stahl rising block 实体硬上限。")
+                .defineInRange("risingMaxPerChunk", 64, 4, 10000);
+        LIMIT_RISING_BLOCKS_TTL_TICKS = common.comment("Stahl rising block 实体的最大寿命（Tick）；不延长原有特效寿命。")
+                .defineInRange("risingTtlTicks", 60, 10, 1200);
         common.pop();
         common.pop();
 

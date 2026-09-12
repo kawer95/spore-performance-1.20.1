@@ -129,7 +129,11 @@ public final class OptionalCompatProbe {
                 "howitzer-ore-scan=" + patched("HowitzerServerOptimizationMixin",
                         read(PerformanceConfig.REFACTOR_HOWITZER_INCREMENTAL_ORE_SCAN)),
                 "howitzer-burnable-scan=" + patched("HowitzerRangedGoalScanMixin",
-                        read(PerformanceConfig.REFACTOR_HOWITZER_BURNABLE_FAST_SCAN))
+                        read(PerformanceConfig.REFACTOR_HOWITZER_BURNABLE_FAST_SCAN)),
+                "falling-block-runtime=" + patched("FallingBlockEntityMixin",
+                        read(PerformanceConfig.LIMIT_FALLING_BLOCKS_ENABLED)),
+                "rising-block-runtime=" + patched("AiFixStahlmorderControlMixin",
+                        read(PerformanceConfig.LIMIT_RISING_BLOCKS_ENABLED))
         );
     }
 
