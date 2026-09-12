@@ -39,6 +39,10 @@ eventDrivenThreats = true
 groupCoordination = true
 # 启用即时、感知、导航和后台四阶段 Tick 诊断。
 tickPipeline = true
+# 空闲且无目标的 Basic、Evolved、Hyper 感染体错峰执行非运行 Goal 的启动检查；运行中的 Goal 仍逐 Tick。
+idleSelectorStagger = true
+# 空闲感染体完整 GoalSelector 启动和清理检查的最短间隔（Tick）。
+idleSelectorInterval = 4
 
 [refactor.navigation]
 # 启用 Spore 共享导航服务；移动和碰撞仍逐 Tick。
@@ -51,8 +55,10 @@ asyncLongPaths = true
 asyncThreshold = 12
 # 异步路径工作线程数量。
 workerThreads = 2
-# 每个维度每 Tick 最多复制的路径快照数量。
-snapshotBudgetPerTick = 32
+# 每个维度每 Tick 最多复制的路径快照数量；单个快照最多约 64×64×7 次方块读取。
+snapshotBudgetPerTick = 1
+# 路径快照提交循环每 Tick 的耗时预算（微秒）；达到后不再启动下一个快照。
+snapshotTimeBudgetMicros = 750
 # 每个维度每 Tick 最多应用的路径结果数量。
 resultBudgetPerTick = 64
 # 单个维度异步路径请求队列上限。

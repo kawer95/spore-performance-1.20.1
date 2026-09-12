@@ -177,12 +177,15 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.BooleanValue REFACTOR_EVENT_THREATS;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_GROUP_COORDINATION;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_TICK_PIPELINE;
+    public static final ForgeConfigSpec.BooleanValue REFACTOR_IDLE_SELECTOR_STAGGER;
+    public static final ForgeConfigSpec.IntValue REFACTOR_IDLE_SELECTOR_INTERVAL;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_NAVIGATION_ENABLED;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_SHARED_CORRIDORS;
     public static final ForgeConfigSpec.BooleanValue REFACTOR_ASYNC_LONG_PATHS;
     public static final ForgeConfigSpec.IntValue REFACTOR_ASYNC_THRESHOLD;
     public static final ForgeConfigSpec.IntValue REFACTOR_PATH_WORKERS;
     public static final ForgeConfigSpec.IntValue REFACTOR_PATH_SNAPSHOT_BUDGET;
+    public static final ForgeConfigSpec.IntValue REFACTOR_PATH_SNAPSHOT_TIME_BUDGET_MICROS;
     public static final ForgeConfigSpec.IntValue REFACTOR_PATH_RESULT_BUDGET;
     public static final ForgeConfigSpec.IntValue REFACTOR_PATH_QUEUE_LIMIT;
     public static final ForgeConfigSpec.IntValue REFACTOR_PATH_CACHE_ENTRIES;
@@ -291,6 +294,10 @@ public final class PerformanceConfig {
                 .define("groupCoordination", true);
         REFACTOR_TICK_PIPELINE = common.comment("启用即时、感知、导航和后台四阶段 Tick 诊断与过载保护。")
                 .define("tickPipeline", true);
+        REFACTOR_IDLE_SELECTOR_STAGGER = common.comment("空闲且无目标的 Basic、Evolved、Hyper 感染体错峰执行非运行 Goal 的启动检查；运行中的 Goal 仍逐 Tick。")
+                .define("idleSelectorStagger", true);
+        REFACTOR_IDLE_SELECTOR_INTERVAL = common.comment("空闲感染体完整 GoalSelector 启动和清理检查的最短间隔（Tick）。")
+                .defineInRange("idleSelectorInterval", 4, 2, 40);
         common.pop();
         common.push("navigation");
         REFACTOR_NAVIGATION_ENABLED = common.comment("启用 Spore 共享导航服务；移动、碰撞和攻击仍逐 Tick。")
@@ -303,8 +310,10 @@ public final class PerformanceConfig {
                 .defineInRange("asyncThreshold", 12, 8, 128);
         REFACTOR_PATH_WORKERS = common.comment("异步路径工作线程数量；线程只允许读取不可变快照。")
                 .defineInRange("workerThreads", 2, 1, 4);
-        REFACTOR_PATH_SNAPSHOT_BUDGET = common.comment("每个维度每 Tick 最多复制的路径快照数量。")
-                .defineInRange("snapshotBudgetPerTick", 32, 1, 256);
+        REFACTOR_PATH_SNAPSHOT_BUDGET = common.comment("每个维度每 Tick 最多复制的路径快照数量；单个快照最多约 64×64×7 次方块读取。")
+                .defineInRange("snapshotBudgetPerTick", 1, 1, 256);
+        REFACTOR_PATH_SNAPSHOT_TIME_BUDGET_MICROS = common.comment("路径快照提交循环每 Tick 的耗时预算（微秒）；达到后不再启动下一个快照。")
+                .defineInRange("snapshotTimeBudgetMicros", 750, 100, 50000);
         REFACTOR_PATH_RESULT_BUDGET = common.comment("每个维度每 Tick 最多接收并缓存的异步路径结果数量。")
                 .defineInRange("resultBudgetPerTick", 64, 1, 512);
         REFACTOR_PATH_QUEUE_LIMIT = common.comment("单个维度允许等待的异步路径请求上限。")

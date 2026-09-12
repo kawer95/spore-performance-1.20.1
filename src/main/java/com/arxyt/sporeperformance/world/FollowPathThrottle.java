@@ -30,7 +30,11 @@ public final class FollowPathThrottle {
             return true;
         }
         if (backoffEnabled && now < failureNextAttempt) return false;
-        return !reuseEnabled || !pathActive || now >= regularNextAttempt;
+        // A completed path is not permission to rebuild immediately. FollowOthersGoal already
+        // retries both on its 20-tick cadence and after ten "done" ticks; allowing !pathActive
+        // here made a short/finished route bypass the configured 40+phase lease and recreated
+        // the exact createPath hotspot this throttle is meant to remove.
+        return !reuseEnabled || now >= regularNextAttempt;
     }
 
     public void recordAttempt(UUID candidateId, double x, double y, double z, long now, boolean success,

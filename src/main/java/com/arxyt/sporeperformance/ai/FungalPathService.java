@@ -187,9 +187,13 @@ public final class FungalPathService implements AutoCloseable {
     }
 
     public void tick() {
+        long snapshotStarted = System.nanoTime();
+        long snapshotDeadline = snapshotStarted
+                + PerformanceConfig.REFACTOR_PATH_SNAPSHOT_TIME_BUDGET_MICROS.get() * 1_000L;
         acceptResults();
         int budget = PerformanceConfig.REFACTOR_PATH_SNAPSHOT_BUDGET.get();
         while (budget-- > 0) {
+            if (System.nanoTime() - snapshotDeadline >= 0L) break;
             CorridorRequest request = snapshots.poll();
             if (request == null) break;
             GridPathfinder.Grid snapshot = snapshot(request);
@@ -213,6 +217,10 @@ public final class FungalPathService implements AutoCloseable {
             if (DebugTrace.enabled(DebugTrace.Category.NAVIGATION))
                 DebugTrace.event(DebugTrace.Category.NAVIGATION, level, 0L, null,
                         "snapshot_submitted", "key=" + request.key + ",queue=" + snapshots.size());
+        }
+        PerformanceMetrics.add("ai_refactor.path.snapshot_tick_nanos", System.nanoTime() - snapshotStarted);
+        if (!snapshots.isEmpty() && System.nanoTime() - snapshotDeadline >= 0L) {
+            PerformanceMetrics.increment("ai_refactor.path.snapshot_time_budget_hit");
         }
         long now = level.getGameTime();
         corridors.entrySet().removeIf(entry -> entry.getValue().expiresAt < now || !routeCurrent(entry.getValue().route));

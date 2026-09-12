@@ -90,6 +90,39 @@ public final class SharedPerceptionService {
         return nearest;
     }
 
+    /** Finds a stable nearest candidate without allocating an observer-specific result list. */
+    public <T extends LivingEntity> T nearestMatching(Entity observer, AABB bounds, Class<T> type,
+                                                       java.util.function.Predicate<T> predicate) {
+        if (!PerformanceConfig.REFACTOR_AI_ENABLED.get() || !PerformanceConfig.REFACTOR_SHARED_PERCEPTION.get()) {
+            T nearest = null;
+            double best = Double.MAX_VALUE;
+            for (T candidate : index.query(bounds, type, observer)) {
+                if (!predicate.test(candidate)) continue;
+                double distance = observer.distanceToSqr(candidate);
+                if (distance < best || distance == best && nearest != null && candidate.getId() < nearest.getId()) {
+                    nearest = candidate;
+                    best = distance;
+                }
+            }
+            return nearest;
+        }
+        T nearest = null;
+        double best = Double.MAX_VALUE;
+        for (LivingEntity value : frame(observer.level().getGameTime(), observer, bounds, type)) {
+            if (value == observer || !type.isInstance(value) || !value.isAlive()
+                    || !bounds.intersects(value.getBoundingBox())) continue;
+            T candidate = type.cast(value);
+            if (!predicate.test(candidate)) continue;
+            double distance = observer.distanceToSqr(candidate);
+            if (distance < best || distance == best && nearest != null && candidate.getId() < nearest.getId()) {
+                nearest = candidate;
+                best = distance;
+            }
+        }
+        PerformanceMetrics.increment("ai_refactor.perception.nearest_matching_without_list");
+        return nearest;
+    }
+
     public void beginTick(long tick) {
         if (frameTick == tick) return;
         frameTick = tick;

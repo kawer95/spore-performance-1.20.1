@@ -24,6 +24,7 @@ import com.arxyt.sporeperformance.world.ItemMergeCoordinator;
 import com.arxyt.sporeperformance.world.LivingEntitySpatialIndex;
 import com.arxyt.sporeperformance.world.FungalWorkBudget;
 import com.arxyt.sporeperformance.world.TargetAcquisitionController;
+import com.arxyt.sporeperformance.world.InfectedSelectorScheduler;
 import com.arxyt.sporeperformance.runtime.GeneralPathBackoff;
 import com.arxyt.sporeperformance.world.ProjectileBroadphaseCache;
 import com.arxyt.sporeperformance.ai.FungalAiRuntime;
@@ -106,6 +107,7 @@ public final class SporePerformance {
         FungalAiRuntime.INSTANCE.clear();
         FungalWorkBudget.INSTANCE.clear();
         TargetAcquisitionController.clear();
+        InfectedSelectorScheduler.clear();
         GeneralPathBackoff.clear();
         ProjectileBroadphaseCache.clear();
         SonaCanChunkTickCache.clear();

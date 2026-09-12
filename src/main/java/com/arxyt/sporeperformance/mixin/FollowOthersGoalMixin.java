@@ -84,12 +84,28 @@ abstract class FollowOthersGoalMixin {
                     ? FungalAiRuntime.INSTANCE.get(level) : null;
             if (runtime != null && runtime.groups.tryDirectFollow(navigation, partner, speed)) return true;
             if (runtime != null) {
-                net.minecraft.core.BlockPos waypoint = runtime.groups.sharedWaypoint(infected, partner);
-                if (waypoint != null) {
-                    boolean result = navigation.moveTo(waypoint.getX() + 0.5D, waypoint.getY(), waypoint.getZ() + 0.5D, speed);
-                    PerformanceMetrics.increment(result ? "ai.follow.corridor_path_created" : "ai.follow.corridor_path_failed");
-                    return result;
+                FollowPathThrottle throttle = sporeperformance$pathThrottle();
+                long now = infected.level().getGameTime();
+                int interval = PerformanceConfig.AGGRESSIVE_FOLLOW_REPATH_INTERVAL.get();
+                double threshold = PerformanceConfig.AGGRESSIVE_FOLLOW_MOVE_THRESHOLD.get();
+                if (!throttle.shouldAttempt(partner.getUUID(), partner.getX(), partner.getY(), partner.getZ(), now,
+                        !navigation.isDone(), true, interval, threshold, true)) {
+                    PerformanceMetrics.increment("ai.follow.refactor_path_reused_or_deferred");
+                    return true;
                 }
+                net.minecraft.core.BlockPos waypoint = runtime.groups.sharedWaypoint(infected, partner);
+                boolean result;
+                if (waypoint != null) {
+                    result = navigation.moveTo(waypoint.getX() + 0.5D, waypoint.getY(), waypoint.getZ() + 0.5D, speed);
+                    PerformanceMetrics.increment(result ? "ai.follow.corridor_path_created" : "ai.follow.corridor_path_failed");
+                } else {
+                    result = navigation.moveTo(target, speed);
+                    PerformanceMetrics.increment(result ? "ai.follow.direct_target_path_created" : "ai.follow.direct_target_path_failed");
+                }
+                throttle.recordAttempt(partner.getUUID(), partner.getX(), partner.getY(), partner.getZ(), now, result,
+                        interval, FollowPathThrottle.phase(infected.getUUID()), true,
+                        PerformanceConfig.AGGRESSIVE_FOLLOW_BACKOFF_MAX.get());
+                return result;
             }
         }
         boolean reuse = PerformanceConfig.AGGRESSIVE_FOLLOW_PATH_REUSE.get();

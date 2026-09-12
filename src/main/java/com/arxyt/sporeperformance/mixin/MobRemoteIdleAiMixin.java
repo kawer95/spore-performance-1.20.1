@@ -3,6 +3,7 @@ package com.arxyt.sporeperformance.mixin;
 import com.arxyt.sporeperformance.world.RemoteIdleAiController;
 import com.arxyt.sporeperformance.ai.StaticEntityPolicy;
 import com.arxyt.sporeperformance.ai.BusserVariantGoalRuntime;
+import com.arxyt.sporeperformance.world.InfectedSelectorScheduler;
 import com.Harbinger.Spore.Sentities.EvolvedInfected.Busser;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
@@ -47,7 +48,15 @@ abstract class MobRemoteIdleAiMixin {
 
     @Redirect(method = "serverAiStep", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/goal/GoalSelector;tick()V"))
     private void sporeperformance$throttleSelectorTick(GoalSelector selector) {
-        if (!RemoteIdleAiController.skipSelectors((Mob) (Object) this)) selector.tick();
+        Mob mob = (Mob) (Object) this;
+        if (RemoteIdleAiController.skipSelectors(mob)) return;
+        if (InfectedSelectorScheduler.deferFullTick(mob)) {
+            // Preserve active attacks, follow movement and other running Goal ticks. Only the
+            // cleanup/start scan over every inactive Goal is deferred for this idle entity.
+            selector.tickRunningGoals(true);
+            return;
+        }
+        selector.tick();
     }
 
     @Redirect(method = "serverAiStep", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/goal/GoalSelector;tickRunningGoals(Z)V"))

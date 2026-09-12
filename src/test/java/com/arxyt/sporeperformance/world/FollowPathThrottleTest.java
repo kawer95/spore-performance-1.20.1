@@ -19,11 +19,12 @@ class FollowPathThrottleTest {
     }
 
     @Test
-    void completedPathCanRetryBeforePeriodicRefresh() {
+    void completedPathStillWaitsForPeriodicRefresh() {
         FollowPathThrottle state = new FollowPathThrottle();
         state.shouldAttempt(PARTNER, 0, 0, 0, 100, true, true, 40, 2.0, false);
         state.recordAttempt(PARTNER, 0, 0, 0, 100, true, 40, 0, false, 80);
-        assertTrue(state.shouldAttempt(PARTNER, 0, 0, 0, 111, false, true, 40, 2.0, false));
+        assertFalse(state.shouldAttempt(PARTNER, 0, 0, 0, 111, false, true, 40, 2.0, false));
+        assertTrue(state.shouldAttempt(PARTNER, 0, 0, 0, 140, false, true, 40, 2.0, false));
     }
 
     @Test

@@ -77,21 +77,14 @@ public final class FungalGroupCoordinator {
     public <T extends LivingEntity> T nearestPartner(Infected source, Class<T> type, Predicate<LivingEntity> predicate, double range) {
         if (!PerformanceConfig.REFACTOR_AI_ENABLED.get() || !PerformanceConfig.REFACTOR_GROUP_COORDINATION.get()) return null;
         AABB bounds = source.getBoundingBox().inflate(range);
-        T nearest = null;
-        double best = Double.MAX_VALUE;
-        for (T candidate : perception.candidates(source.level().getGameTime(), source, bounds, type)) {
-            if (candidate == source || !candidate.isAlive() || predicate != null && !predicate.apply(candidate)) continue;
-            double distance = source.distanceToSqr(candidate);
-            if (distance < best || distance == best && nearest != null && candidate.getId() < nearest.getId()) {
-                nearest = candidate;
-                best = distance;
-            }
-        }
+        T nearest = perception.nearestMatching(source, bounds, type,
+                candidate -> candidate != source && candidate.isAlive()
+                        && (predicate == null || predicate.apply(candidate)));
         PerformanceMetrics.increment("ai_refactor.group.partner_queries");
         if (DebugTrace.enabled(DebugTrace.Category.GROUP) && source.level() instanceof ServerLevel level)
             DebugTrace.event(DebugTrace.Category.GROUP, level, DebugTrace.trace(source), source,
                     "partner_selected", "type=" + type.getName() + ",partner=" + (nearest == null ? "" : nearest.getUUID())
-                            + ",distanceSqr=" + best);
+                            + ",distanceSqr=" + (nearest == null ? Double.MAX_VALUE : source.distanceToSqr(nearest)));
         return nearest;
     }
 

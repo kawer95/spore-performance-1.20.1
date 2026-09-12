@@ -103,6 +103,7 @@ public final class OptimizationProfiles {
             PerformanceConfig.REFACTOR_EVENT_THREATS,
             PerformanceConfig.REFACTOR_GROUP_COORDINATION,
             PerformanceConfig.REFACTOR_TICK_PIPELINE,
+            PerformanceConfig.REFACTOR_IDLE_SELECTOR_STAGGER,
             PerformanceConfig.REFACTOR_NAVIGATION_ENABLED,
             PerformanceConfig.REFACTOR_SHARED_CORRIDORS,
             PerformanceConfig.REFACTOR_ASYNC_LONG_PATHS,

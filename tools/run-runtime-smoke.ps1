@@ -66,8 +66,22 @@ $serverProperties = Join-Path $runtime 'server.properties'
 $smokeLevelName = "world-smoke-$ModuleSet"
 if (Test-Path -LiteralPath $serverProperties) {
     $propertiesText = Get-Content -LiteralPath $serverProperties -Raw
-    $propertiesText = $propertiesText -replace '(?m)^server-port=\d+$', "server-port=$SmokePort"
-    $propertiesText = $propertiesText -replace '(?m)^query.port=\d+$', "query.port=$SmokePort"
+    if ($propertiesText -match '(?m)^server-port=\d+$') {
+        $propertiesText = $propertiesText -replace '(?m)^server-port=\d+$', "server-port=$SmokePort"
+    } else {
+        $propertiesText += "`r`nserver-port=$SmokePort"
+    }
+    if ($propertiesText -match '(?m)^query.port=\d+$') {
+        $propertiesText = $propertiesText -replace '(?m)^query.port=\d+$', "query.port=$SmokePort"
+    } else {
+        $propertiesText += "`r`nquery.port=$SmokePort"
+    }
+    $rconPort = $SmokePort + 100
+    if ($propertiesText -match '(?m)^rcon.port=\d+$') {
+        $propertiesText = $propertiesText -replace '(?m)^rcon.port=\d+$', "rcon.port=$rconPort"
+    } else {
+        $propertiesText += "`r`nrcon.port=$rconPort"
+    }
     $propertiesText = $propertiesText -replace '(?m)^level-name=.*$', "level-name=$smokeLevelName"
     Write-Utf8NoBom -Path $serverProperties -Value $propertiesText
 }
