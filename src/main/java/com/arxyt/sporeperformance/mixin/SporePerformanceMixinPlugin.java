@@ -27,6 +27,7 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
             "OptionalSonaCanChunkMixin", "OptionalSonaInfectionShaderPostMixin", "OptionalSonaInfectionOverlayMixin");
     private static final Set<String> TOUHOU = Set.of("OptionalTouhouPowerPointMixin");
     private static final Set<String> TACZ = Set.of("CalamityDamageBypassMixin", "SporeAdaptationBypassMixin");
+    private static final Set<String> JADE = Set.of("OptionalJadeReceiveDataPacketMixin");
     private static final Set<String> SPORE_RENDER = Set.of(
             "BaseInfectedRendererMixin", "TranslucentLayerAnimationMixin", "DrakeMembraneLayerAnimationMixin",
             "BreweryLiquidAnimationMixin", "EyeLayerRenderMixin", "BairnEyeLayerRenderMixin",
@@ -191,6 +192,13 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
         }
         if (TACZ.contains(simple)) {
             if (FMLLoader.getLoadingModList().getModFileById("tacz") == null) {
+                MixinPatchStatus.record(simple, OptionalCompatProbe.State.SKIPPED);
+                return false;
+            }
+            return recordCompatibility(simple, targetClassName);
+        }
+        if (JADE.contains(simple)) {
+            if (FMLLoader.getLoadingModList().getModFileById("jade") == null) {
                 MixinPatchStatus.record(simple, OptionalCompatProbe.State.SKIPPED);
                 return false;
             }

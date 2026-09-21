@@ -11,6 +11,7 @@ import com.arxyt.sporeperformance.compat.SporeSrpStagger;
 import com.arxyt.sporeperformance.compat.SonaCanChunkTickCache;
 import com.arxyt.sporeperformance.compat.MoundStructureBridge;
 import com.arxyt.sporeperformance.compat.TaczDamageBypass;
+import com.arxyt.sporeperformance.compat.CorruptEntityNbtGuard;
 import com.arxyt.sporeperformance.config.PerformanceConfig;
 import com.arxyt.sporeperformance.scheduler.FungalWorkScheduler;
 import com.arxyt.sporeperformance.scheduler.HowitzerOreSearchScheduler;
@@ -67,6 +68,7 @@ public final class SporePerformance {
         MinecraftForge.EVENT_BUS.register(FungalAiRuntime.INSTANCE);
         MinecraftForge.EVENT_BUS.register(FungalWorkBudget.INSTANCE);
         MinecraftForge.EVENT_BUS.register(TransientBlockEntityRuntime.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(CorruptEntityNbtGuard.INSTANCE);
         // This service has a direct optional sporesrp helper reference.  Do not construct it
         // on installations that intentionally run Spore without sporesrp.
         if (ModList.get().isLoaded("sporesrp")) MinecraftForge.EVENT_BUS.register(SporeSrpBackgroundScheduler.INSTANCE);

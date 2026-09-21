@@ -24,6 +24,9 @@ public final class PerformanceConfig {
     public static final ForgeConfigSpec.BooleanValue SAFE_SPORE_PROJECTILE_BROADPHASE;
     public static final ForgeConfigSpec.BooleanValue SAFE_PERSIST_BILE_PROJECTILE_LIFETIME;
     public static final ForgeConfigSpec.IntValue SAFE_BILE_PROJECTILE_LIFETIME_TICKS;
+    public static final ForgeConfigSpec.BooleanValue SAFE_SANITIZE_CORRUPT_EMPTY_STACKS;
+    public static final ForgeConfigSpec.BooleanValue SAFE_SANITIZE_MARKER_CURATIVES;
+    public static final ForgeConfigSpec.IntValue SAFE_JADE_ENTITY_PAYLOAD_LIMIT_BYTES;
     public static final ForgeConfigSpec.BooleanValue CLIENT_HINDERBURG_INDEX;
     public static final ForgeConfigSpec.BooleanValue CLIENT_SPORESRP_HUD_HOTBAR;
     public static final ForgeConfigSpec.BooleanValue CLIENT_SPORESRP_HUD_ABOVE_SCREENS;
@@ -289,6 +292,12 @@ public final class PerformanceConfig {
                 .define("persistBileProjectileLifetime", true);
         SAFE_BILE_PROJECTILE_LIFETIME_TICKS = common.comment("Spore 胆汁投射物的总生存时间（Tick）；300 与本体原始设定一致。")
                 .defineInRange("bileProjectileLifetimeTicks", 300, 1, 72000);
+        SAFE_SANITIZE_CORRUPT_EMPTY_STACKS = common.comment("阻止空物品携带 TaCZ 枪械 NBT 或被附魔，避免共享 ItemStack.EMPTY 污染扩散。")
+                .define("sanitizeCorruptEmptyStacks", true);
+        SAFE_SANITIZE_MARKER_CURATIVES = common.comment("清空 spore:marker 的无效 CurativeItems；该效果本身不可由物品治愈。")
+                .define("sanitizeMarkerCuratives", true);
+        SAFE_JADE_ENTITY_PAYLOAD_LIMIT_BYTES = common.comment("Jade 实体响应的安全 NBT 预算（字节）；超限时返回空响应而不是阻塞服务端。")
+                .defineInRange("jadeEntityPayloadLimitBytes", 524288, 65536, 2097152);
         common.pop();
 
         common.push("refactor");

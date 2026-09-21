@@ -80,6 +80,13 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.spore_performance]]
+modId="jade"
+mandatory=false
+versionRange="[11,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.spore_performance]]
 modId="dominionsword"
 mandatory=false
 versionRange="[0,)"

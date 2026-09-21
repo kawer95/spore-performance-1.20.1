@@ -25,6 +25,12 @@ sporeProjectileBroadphaseCache = true
 persistBileProjectileLifetime = true
 # 胆汁投射物的总生存时间（Tick）；300 与 Spore 本体原始设定一致。
 bileProjectileLifetimeTicks = 300
+# 阻止空物品携带 TaCZ 枪械 NBT 或被附魔，避免共享 ItemStack.EMPTY 污染扩散。
+sanitizeCorruptEmptyStacks = true
+# 清空 spore:marker 的无效 CurativeItems；该效果本身不可由物品治愈。
+sanitizeMarkerCuratives = true
+# Jade 实体响应的安全 NBT 预算（字节）；超限时返回空响应而不是阻塞服务端。
+jadeEntityPayloadLimitBytes = 524288
 
 [refactor]
 
