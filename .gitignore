@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .gradle/
+.codex-backups/
 .engineering/
 build/
 logs/
