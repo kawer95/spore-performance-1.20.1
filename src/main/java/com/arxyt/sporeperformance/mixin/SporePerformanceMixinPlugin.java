@@ -21,13 +21,14 @@ import java.util.Map;
  */
 public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> AI_FIX = Set.of("OptionalHowitzerMixin", "OptionalStormFortressClientMixin", "OptionalImmortalAuditMixin");
-    private static final Set<String> SPORESRP = Set.of("OptionalSporeSrpProtoSkillsMixin", "OptionalSporeSrpMarkedMoundMixin", "OptionalSporeSrpFullHivemindMixin", "OptionalSporeSrpBuilderMixin", "OptionalSporeSrpFullHivemindMiningMixin", "OptionalSporeSrpHudMixin", "OptionalSporeSrpDamageBypassMixin");
+    private static final Set<String> SPORESRP = Set.of("OptionalSporeSrpProtoSkillsMixin", "OptionalSporeSrpMarkedMoundMixin", "OptionalSporeSrpFullHivemindMixin", "OptionalSporeSrpBuilderMixin", "OptionalSporeSrpFullHivemindMiningMixin", "OptionalSporeSrpHudMixin", "OptionalSporeSrpDamageBypassMixin", "OptionalSporeSrpJoinLogMixin");
     private static final Set<String> EMBEDDIUM = Set.of("OptionalEmbeddiumBlockRendererMixin");
     private static final Set<String> SONA = Set.of(
             "OptionalSonaCanChunkMixin", "OptionalSonaInfectionShaderPostMixin", "OptionalSonaInfectionOverlayMixin");
     private static final Set<String> TOUHOU = Set.of("OptionalTouhouPowerPointMixin");
     private static final Set<String> TACZ = Set.of("CalamityDamageBypassMixin", "SporeAdaptationBypassMixin");
     private static final Set<String> JADE = Set.of("OptionalJadeReceiveDataPacketMixin");
+    private static final Set<String> TACZ_PRESENCE = Set.of("OptionalTaczPresenceServerLogMixin", "OptionalTaczPresenceClientLogMixin");
     private static final Set<String> SPORE_RENDER = Set.of(
             "BaseInfectedRendererMixin", "TranslucentLayerAnimationMixin", "DrakeMembraneLayerAnimationMixin",
             "BreweryLiquidAnimationMixin", "EyeLayerRenderMixin", "BairnEyeLayerRenderMixin",
@@ -89,6 +90,9 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
             ,Map.entry("CalamityDamageBypassMixin", Set.of("m_6469_"))
             ,Map.entry("SporeAdaptationBypassMixin", Set.of("m_6469_"))
             ,Map.entry("OptionalSporeSrpDamageBypassMixin", Set.of("onLivingHurt"))
+            ,Map.entry("OptionalSporeSrpJoinLogMixin", Set.of("onEntityJoin"))
+            ,Map.entry("OptionalTaczPresenceServerLogMixin", Set.of("checkSuppressionForTrajectory"))
+            ,Map.entry("OptionalTaczPresenceClientLogMixin", Set.of("onSuppressionPacket"))
             ,Map.entry("HurtTargetGoalMixin", Set.of("alertOthers"))
             ,Map.entry("AOEMeleeAttackGoalMixin", Set.of("checkAndPerformAttack"))
             ,Map.entry("CustomMeleeAttackGoalMetricsMixin", Set.of("m_8036_", "m_8056_", "m_8041_", "m_8037_"))
@@ -199,6 +203,13 @@ public final class SporePerformanceMixinPlugin implements IMixinConfigPlugin {
         }
         if (JADE.contains(simple)) {
             if (FMLLoader.getLoadingModList().getModFileById("jade") == null) {
+                MixinPatchStatus.record(simple, OptionalCompatProbe.State.SKIPPED);
+                return false;
+            }
+            return recordCompatibility(simple, targetClassName);
+        }
+        if (TACZ_PRESENCE.contains(simple)) {
+            if (FMLLoader.getLoadingModList().getModFileById("tacz_presence") == null) {
                 MixinPatchStatus.record(simple, OptionalCompatProbe.State.SKIPPED);
                 return false;
             }

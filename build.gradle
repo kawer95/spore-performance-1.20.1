@@ -80,6 +80,7 @@ stagedInstalledDependency('touhoulittlemaid-1.5.3-forge+mc1.20.1.jar', 'touhouli
 stagedInstalledDependency('embeddium-0.3.31+mc1.20.1.jar', 'embeddium-0.3.31.jar')
 stagedDependency('E:/斗蛐蛐/.minecraft/versions/国潮红师2/mods/[加速渲染]acceleratedrendering-1.0.14-1.20.1-alpha.jar', 'acceleratedrendering-1.0.14.jar')
 stagedInstalledDependency('Jade-1.20.1-Forge-11.13.2.jar', 'jade-11.13.2.jar')
+stagedInstalledDependency('tacz_presence-1.4.jar', 'tacz-presence-1.4.jar')
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
@@ -98,6 +99,7 @@ dependencies {
     // Optional client mesh pipeline. Runtime interaction remains reflection based and fail-closed.
     compileOnly fg.deobf('local.spore:acceleratedrendering:1.0.14')
     compileOnly fg.deobf('local.spore:jade:11.13.2')
+    compileOnly fg.deobf('local.spore:tacz-presence:1.4')
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
