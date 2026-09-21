@@ -210,3 +210,26 @@ tasks.register('verifyMixinPackageSafety') {
 
 tasks.named('check').configure { dependsOn tasks.named('verifyMixinPackageSafety') }
 tasks.named('jar').configure { dependsOn tasks.named('verifyMixinPackageSafety') }
+
+tasks.register('verifyJadeMixinHandlerDescriptor') {
+    dependsOn tasks.named('classes')
+    group = 'verification'
+    description = 'Ensures Jade static write injection keeps the exact target-method descriptor.'
+    doLast {
+        def classFile = sourceSets.main.output.classesDirs.files.collect {
+            new File(it, 'com/arxyt/sporeperformance/mixin/OptionalJadeReceiveDataPacketMixin.class')
+        }.find { it.isFile() }
+        if (classFile == null) {
+            throw new GradleException('Compiled Jade mixin class is unavailable for descriptor verification.')
+        }
+        def classBytes = new String(classFile.bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+        def descriptor = '(Lsnownee/jade/network/ReceiveDataPacket;Lnet/minecraft/network/FriendlyByteBuf;' +
+                'Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V'
+        if (!classBytes.contains(descriptor)) {
+            throw new GradleException("Jade mixin handler descriptor does not match ReceiveDataPacket.write: ${descriptor}")
+        }
+    }
+}
+
+tasks.named('check').configure { dependsOn tasks.named('verifyJadeMixinHandlerDescriptor') }
+tasks.named('jar').configure { dependsOn tasks.named('verifyJadeMixinHandlerDescriptor') }

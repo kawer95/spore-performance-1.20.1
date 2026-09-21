@@ -5,6 +5,7 @@ import com.arxyt.sporeperformance.compat.NbtPayloadSanitizer;
 import com.arxyt.sporeperformance.compat.CorruptEntityNbtGuard;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import snownee.jade.network.ReceiveDataPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,8 +21,9 @@ public abstract class OptionalJadeReceiveDataPacketMixin {
     @Shadow public CompoundTag tag;
 
     @Inject(method = "write", at = @At("HEAD"), remap = false)
-    private static void sporeperformance$boundEntityNbt(Object packet, FriendlyByteBuf buffer, CallbackInfo callback) {
-        OptionalJadeReceiveDataPacketMixin self = (OptionalJadeReceiveDataPacketMixin) packet;
+    private static void sporeperformance$boundEntityNbt(ReceiveDataPacket packet, FriendlyByteBuf buffer,
+                                                        CallbackInfo callback) {
+        OptionalJadeReceiveDataPacketMixin self = (OptionalJadeReceiveDataPacketMixin) (Object) packet;
         NbtPayloadSanitizer.Result result = NbtPayloadSanitizer.sanitize(self.tag,
                 CorruptEntityNbtGuard.jadePayloadLimit());
         self.tag = result.tag();
